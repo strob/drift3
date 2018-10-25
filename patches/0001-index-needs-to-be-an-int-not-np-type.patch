@@ -1,0 +1,25 @@
+From 460bb73a05bc09d54c0624aa0f690e01e6c36dc9 Mon Sep 17 00:00:00 2001
+From: Robert M Ochshorn <mail@RMOZONE.COM>
+Date: Fri, 20 Apr 2018 00:41:47 -0500
+Subject: [PATCH] index needs to be an int, not np type
+
+---
+ python/sbpca.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/python/sbpca.py b/python/sbpca.py
+index b8d7f29..e4e0080 100644
+--- a/python/sbpca.py
++++ b/python/sbpca.py
+@@ -204,7 +204,7 @@ def subbands(data, srate, fbank, discard=0, isfirst=0):
+     for filt in range(bands):
+         # disp(['band ' int2str(filt)]);
+         # pad t zeros on the end, since we're going to chop from tail
+-        tdel = np.round(fbank.tdel[filt])
++        tdel = int(np.round(fbank.tdel[filt]))
+ #        y_1 = scipy.signal.lfilter(fbank.b_i[filt,],
+ #                                 fbank.a_i[filt,],
+ #                                 np.r_[data, np.zeros(tdel)])
+-- 
+2.15.1 (Apple Git-101)
+

@@ -1,3 +1,6 @@
 [submodule "ext/guts"]
 	path = ext/guts
 	url = https://github.com/strob/guts.git
+[submodule "ext/calc_sbpca"]
+	path = ext/calc_sbpca
+	url = https://github.com/dpwe/calc_sbpca.git
