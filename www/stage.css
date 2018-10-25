@@ -1,0 +1,160 @@
+* {
+  box-sizing: border-box;
+}
+body {
+    font-family: Arial, sans;
+    background-color: #ECEFF1;
+    margin: 0;
+    padding: 0;
+}
+
+#head {
+    height: 40px;
+    background-color: black;
+    color: white;
+    padding: 5px;
+}
+#head div {
+    float: left;
+    margin-right: 20px;
+}
+
+#logo {
+    font-size: 14pt;
+    font-weight: bold;
+    cursor: pointer;
+}
+.listitem {
+    margin-left: 10%;
+    width: 80%;
+    height: 100px;
+    border: 1px solid black;
+    margin-top: 10px;
+    cursor: pointer;
+    text-align: center;
+}
+.listitem.upload {
+    border: 1px dashed #999;
+    padding: 20px;
+    font-weight: bold;
+    cursor: inherit;
+}
+.listitem.pending {
+    background-color: #ECEFF1;
+    color: #90A4AE;
+    border: 1px dashed #999;
+    cursor: inherit;
+    height: 200px;
+}
+.paste {
+    font-style: italic;
+    margin: 5px;
+    margin-top: 15px;
+}
+.listitem.upload.drag {
+    background-color: yellow;
+}
+.listitem input {
+    display: block;
+}
+
+.ptext {
+    width: 50%;
+    height: 80px;
+}
+
+.listitem .title {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 15px;
+}
+.listitem.ready {
+    border-radius: 8px;
+    background-color: white;
+}
+.listitem.ready .title {
+    text-align: center;
+    font-weight: bold;
+}
+
+#wdcan {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+#graph {
+    position: absolute;
+    z-index: 2;
+    top: 25%;
+    left: 50%;
+}
+
+#zoom {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 200px;
+    height: 20px;
+    background-color: #263238;
+}
+#zoom-status {
+    height: 100%;
+    background-color: #FEDE88;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+#zoom-text {
+    position: absolute;
+    top: -12px;
+    font-size: 8pt;
+}
+
+#underline {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: #E85C41;
+    position: absolute;
+
+    transition-property: left, top;
+    transition-duration: 0.05s;
+}
+
+a {
+    color: white;
+    text-decoration: underline;
+}
+
+.delete {
+    text-align: right;
+    color: red;
+    visibility: hidden;
+    margin: 10px 15px;
+}
+.delete:hover {
+    text-decoration: underline;
+}
+.listitem:hover .delete {
+    visibility: visible;
+}
+
+
+.paragraph {
+    position: relative;
+    line-height: 2em;
+    font-size: 14pt;
+
+    padding: 10px;
+    
+    letter-spacing: 2;
+    width: 45%;
+    color: #263238;
+
+    top: 10px;
+
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+}

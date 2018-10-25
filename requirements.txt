@@ -1,0 +1,6 @@
+scikits.audiolab
+numpy
+Twisted
+autobahn[twisted,accelerate]
+watchdog
+sklearn
