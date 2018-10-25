@@ -1,0 +1,1 @@
+../ext/guts/template/attachments.js

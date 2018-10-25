@@ -1,0 +1,3 @@
+[submodule "ext/guts"]
+	path = ext/guts
+	url = https://github.com/strob/guts.git
