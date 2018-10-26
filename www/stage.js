@@ -487,6 +487,15 @@ function render_doc_paragraph(root) {
         let segel = root.div({
             id: "p-" + seg_idx
         });
+
+	if(seg.speaker) {
+	    segel.div({
+		id: 'spekr-' + seg_idx,
+		classes: ['spkr'],
+		text: seg.speaker + ': '
+	    });
+	}
+	
 	seg.wdlist.forEach((wd, wd_idx) => {
             segel.span({
                 id: "wd-" + seg_idx + '-' + wd_idx,

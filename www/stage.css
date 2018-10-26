@@ -158,3 +158,12 @@ a {
     height: calc(100vh - 60px);
     overflow-y: auto;
 }
+
+
+.spkr {
+    font-size: 10pt;
+    font-family: 'Courier New', Courier, mono;
+    color: #999;
+    min-width: 100px;
+    display: inline-block;
+}
