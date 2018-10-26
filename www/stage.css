@@ -172,3 +172,7 @@ a {
 .svgseg {
     display: block;
 }
+
+.axis {
+    font-size: 8pt;
+}

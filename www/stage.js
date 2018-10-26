@@ -1,6 +1,7 @@
-var T = T || {
-    XSCALE: 200
-};
+var T = T || {};
+T.XSCALE = 250;
+T.PITCH_H= 500;
+T.LPAD = 50;
 
 if(!T.docs) {
     T.docs = {};
@@ -353,18 +354,51 @@ function doc_update() {
     render();
 }
 
-function pitch_stats(seq) {
-    let pitched=seq.filter((p) => p>0);
+function pitch_stats(seq, seg) {
+
+    let velocity = [];
+
+    
+    
+    let pitched=seq.filter((p) => p>20);
     if(pitched.length==0) {
 	return
     }
 
     let mean=pitched.reduce((acc,x)=>acc+x,0) / pitched.length;
-    pitched.sort();
-    let p9 = pitched[Math.round(pitched.length * 0.09)];
-    let p91 = pitched[Math.round(pitched.length * 0.91)];
+    pitched.sort((x,y) => x > y ? 1 : -1);
+		 
+    let p9 = pitched[Math.floor(pitched.length * 0.09)];
+    let p91 = pitched[Math.floor(pitched.length * 0.91)];
+    let p2 = pitched[Math.floor(pitched.length * 0.02)];
+    let p98 = pitched[Math.floor(pitched.length * 0.98)];
 
-    return {mean, p9, p91};
+    return {mean, p9, p91, p2, p98, seg};
+}
+
+function render_whiskers(root, id, stats, x1, x2) {
+    root.rect({
+	id: id + '-rect',
+	attrs: {
+	    x: x1,
+	    y: Math.min(pitch2y(stats.p9), pitch2y(stats.p91)),
+	    width: (x2-x1),
+	    height: Math.abs(pitch2y(stats.p9) - pitch2y(stats.p91)),
+	    stroke: 'rgba(0,0,0,0.5)',
+	    fill: 'none'
+	}
+    });
+    root.line({
+	id: id + '-mean',
+	attrs: {
+	    x1: x1,
+	    x2: x2,
+	    y1: pitch2y(stats.mean),
+	    y2: pitch2y(stats.mean),	    
+	    stroke: 'rgba(255,0,0,0.4)',
+	    fill: 'none'
+	}
+    });    
 }
 
 function render_segs(root, head) {
@@ -376,129 +410,113 @@ function render_segs(root, head) {
 
     T.cur_align.segments.forEach((seg, seg_idx) => {
 
-	// let segel = root.div({
-	//     id: 'seg-' + seg_idx,
-	//     classes: ['seg']
-	// });
+	render_seg(root, seg, seg_idx);
+    })
 
-	let svg = root.svg({
-	    id: 'svg-' + seg_idx,
-	    attrs: {
-		width: Math.ceil((seg.end - seg.start)*T.XSCALE),
-		height: 500
-	    }
-	});
+}
 
-	let seq_stats = pitch_stats(
-	    T.cur_pitch.slice(Math.round(seg.start*100),
-			      Math.round(seg.end*100)));
+function render_seg(root, seg, seg_idx) {
 
-	console.log('ss', seq_stats)
+    // let segel = root.div({
+    //     id: 'seg-' + seg_idx,
+    //     classes: ['seg']
+    // });
 
-	svg.line({id: 's-' + seg_idx,
+    const seg_w = T.LPAD + Math.ceil((seg.end - seg.start)*T.XSCALE);
+
+    let svg = root.svg({
+	id: 'svg-' + seg_idx,
+	attrs: {
+	    width: seg_w,
+	    height: 500
+	}
+    });
+
+    // Draw axes
+    var y_axes = [50, 100, 150, 200, 250, 300, 350, 400];
+    y_axes.forEach((yval) => {
+        var y_px = pitch2y(yval);
+
+	svg.line({id: 'seg-' + seg_idx + '-axis-' + yval,
 		  attrs: {
 		      x1: 0,
-		      y1: 500-seq_stats.mean,
-		      x2: (seg.end - seg.start)*T.XSCALE,
-		      y2: 500-seq_stats.mean,
-		      'stroke-width': 1.5,
-		      stroke: '#3B5161',
-		  }
-		 })
-	svg.line({id: 's9-' + seg_idx,
+		      y1: y_px,
+		      x2: seg_w,
+		      y2: y_px,
+		      stroke: '#C4D5D9'
+		  }})
+	svg.text({id: 'seg-' + seg_idx + '-axistxt-' + yval,
+		  text: '' + yval + 'Hz',
 		  attrs: {
-		      x1: 0,
-		      y1: 500-seq_stats.p9,
-		      x2: (seg.end - seg.start)*T.XSCALE,
-		      y2: 500-seq_stats.p9,
-		      'stroke-width': 1,
-		      stroke: '#C4D5D9',
-		  }
-		 })
-	svg.line({id: 's91-' + seg_idx,
-		  attrs: {
-		      x1: 0,
-		      y1: 500-seq_stats.p91,
-		      x2: (seg.end - seg.start)*T.XSCALE,
-		      y2: 500-seq_stats.p91,
-		      'stroke-width': 1,
-		      stroke: '#C4D5D9',
-		  }
-		 })		
+		      x: 0,
+		      y: y_px,
+		      class: 'axis',
+		      fill: '#3B5161'
+		  }})
 
-	// Draw the entire pitch trace
-	let ps = '';
-	let started=false;
+    });
+
+    let seq_stats = pitch_stats(
 	T.cur_pitch.slice(Math.round(seg.start*100),
-			  Math.round(seg.end*100))
-	    .forEach((p,p_idx) => {
-		if(p > 0) {
-		    if(!started) {
-			ps += 'M ';
-		    }
-		    ps += '' + (p_idx/100)*T.XSCALE + ',' + (500-p) + ' ';
-		    started=true;
+			  Math.round(seg.end*100)), seg);
+
+    render_whiskers(svg, 'segwhisk-' + seg_idx,
+		    seq_stats, T.LPAD, seg_w);
+
+
+    // Draw the entire pitch trace
+    let ps = '';
+    let started=false;
+    T.cur_pitch.slice(Math.round(seg.start*100),
+		      Math.round(seg.end*100))
+	.forEach((p,p_idx) => {
+	    if(p > 0) {
+		if(!started) {
+		    ps += 'M ';
 		}
-		else {
-		    started=false;
-		}
-	    });
-	// console.log('path', ps)
-	svg.path({
-	    id: 'spath-' + seg_idx,
-	    attrs: {
-		d: ps,
-		stroke: 'rgba(0,0,0,0.5)',
-		fill: 'none'
+		ps += '' + (T.LPAD + (p_idx/100)*T.XSCALE) + ',' + (pitch2y(p)) + ' ';
+		started=true;
+	    }
+	    else {
+		started=false;
 	    }
 	});
+    
+    svg.path({
+	id: 'spath-' + seg_idx,
+	attrs: {
+	    d: ps,
+	    stroke: '#8D78B9', //'#CCBDED',//rgba(0,0,0,0.5)',
+	    'stroke-width': 3,
+	    fill: 'none'
+	}
+    });
+    
+
+    // Draw each word
+    seg.wdlist.forEach((wd,wd_idx) => {
+
+	if(!wd.end) { return }
+
+	let wd_stats = pitch_stats(T.cur_pitch.slice(Math.round(wd.start*100),
+						     Math.round(wd.end*100)), seg);
+	if(!wd_stats) {
+	    return
+	}
+
+	render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
+			wd_stats,
+			T.LPAD + (wd.start - seg.start)*T.XSCALE,
+			T.LPAD + (wd.end - seg.start)*T.XSCALE)
 	
-
-	// Draw each word
-	seg.wdlist.forEach((wd,wd_idx) => {
-
-	    if(!wd.end) { return }
-
-	    let avg_wd_pitch=0;
-	    let npitched=0;
-	    T.cur_pitch.slice(Math.round(wd.start*100),
-			      Math.round(wd.end*100))
-		.forEach((p) => {
-		    if(p > 0) {
-			avg_wd_pitch += p;
-			npitched += 1;
-		    }
-		});
-	    if(npitched > 0) {
-		avg_wd_pitch /= npitched;
-	    }
-	    
-	    svg.line({id: 'l-' + seg_idx + '-' + wd_idx,
-			attrs: {
-			    x1: (wd.start - seg.start)*T.XSCALE,
-			    y1: 500-avg_wd_pitch,
-			    x2: (wd.end - seg.start)*T.XSCALE,
-			    y2: 500-avg_wd_pitch,
-			    'stroke-width': 3,
-			    stroke: 'rgba(0,0,0,0.5)',
-			},
-			events: {
-			    onclick: () => {
-				console.log("click", wd);
-			    }
-			}
-		       })
-	
-	    // svg.line({id: 'line-' + seg_idx,
-	    // 	      attrs: {
-	    // 		  x1: 0,
-	    // 		  y1: 0,
-	    // 		  x2: 100,
-	    // 		  y2: 100,
-	    // 		  stroke: 'black'
-	    // 	      }})
-	})
-
+	svg.text({id: 'txt-' + seg_idx + '-' + wd_idx,
+		  text: wd.word,
+		  attrs: {
+		      x: T.LPAD + (wd.start - seg.start)*T.XSCALE,
+		      y: pitch2y(wd_stats.mean) - 2,
+		      fill: '#3B5161'
+		  }
+		 })
     });
 }
 
@@ -936,12 +954,17 @@ function render_waveform(ctx, w, rect, p_h) {
 }
 
 function pitch2y(p, p_h) {
-    p_h = p_h || 40;
-    
     if(p == 0) {
         return p;
     }
-    return p_h - (p - T.MIN_PITCH) * T.PITCH_SC * p_h;
+    return T.PITCH_H - p;
+    
+    // p_h = p_h || T.PITCH_H;
+    
+    // if(p == 0) {
+    //     return p;
+    // }
+    // return p_h - (p - T.MIN_PITCH) * T.PITCH_SC * p_h;
 }
 
 function tick() {
