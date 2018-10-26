@@ -21,7 +21,7 @@ function reload_docs() {
             render();
 	}
 
-	window.setTimeout(reload_docs, 1000);
+	window.setTimeout(reload_docs, 3000);
     });
 }
 
