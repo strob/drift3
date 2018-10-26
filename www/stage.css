@@ -173,9 +173,39 @@ a {
     display: block;
 }
 
+.word{
+    font-size: 14pt;
+    font-weight: bold;
+}
 .axis {
     font-size: 8pt;
 }
 .unaligned {
     font-style: italic;
+}
+
+
+#ss {
+    position: relative;
+}
+.cell {
+    position: absolute;
+    border: 1px solid #C4D5D9;
+    color: #3B5161;
+
+    transition-property: top, left, width, height;
+    transition-duration: 0.2s;
+}
+.header.cell {
+    border: 1px solid #3B5161;
+    text-align: center;
+    font-weight: bold;
+}
+.cell.txt {
+    border: 0;
+    font-style: italic;
+    padding-left: 20px;
+}
+.cell.global {
+    color: #000000;
 }

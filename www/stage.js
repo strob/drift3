@@ -1,5 +1,5 @@
 var T = T || {};
-T.XSCALE = 250;
+T.XSCALE = 300;
 T.PITCH_H= 500;
 T.LPAD = 50;
 T.MAX_A= 15;
@@ -412,7 +412,45 @@ function derivative(seq) {
     return out;
 }
 
-function pitch_stats(seq, seg) {
+function get_distribution(seq, name) {
+    name = name || '';
+
+    seq = Object.assign([], seq).sort((x,y) => x > y ? 1 : -1);
+
+    if(seq.length==0) {
+	return {}
+    }
+    
+    // Ignore outliers
+    seq = seq.slice(Math.floor(seq.length*0.09),
+		    Math.floor(seq.length*0.91));
+
+    let out = {};
+    out[name + 'mean'] = seq.reduce((acc,x)=>acc+x,0) / seq.length;
+    out[name + 'percentile_9'] = seq[0];
+    out[name + 'percentile_91'] = seq[seq.length-1];    
+    out[name + 'range'] = seq[seq.length-1] - seq[0];
+
+    return out;
+}
+
+function time_stats(wdlist) {
+    // Analyze gaps
+    let gaps = wdlist.filter((x) => x.type=='gap');
+
+    let gap_distr = get_distribution(gaps.map((x) => x.end-x.start), 'gap_')
+
+    let pgap = gaps.length / wdlist.length;
+
+    // ...and durations
+    let phones = wdlist.filter((x) => x.phones)
+	.reduce((acc,x) => acc.concat(x.phones.map((p) => p.duration)), []);
+    let phone_distr = get_distribution(phones, 'phone_');
+
+    return Object.assign({pgap}, gap_distr, phone_distr);
+}
+
+function pitch_stats(seq) {
 
     let smoothed = smooth(seq);
 
@@ -424,18 +462,16 @@ function pitch_stats(seq, seg) {
 	return
     }
 
-    let mean=pitched.reduce((acc,x)=>acc+x,0) / pitched.length;
-    pitched.sort((x,y) => x > y ? 1 : -1);
-		 
-    let p9 = pitched[Math.floor(pitched.length * 0.09)];
-    let p91 = pitched[Math.floor(pitched.length * 0.91)];
-    let p2 = pitched[Math.floor(pitched.length * 0.02)];
-    let p98 = pitched[Math.floor(pitched.length * 0.98)];
+    let pitch_distr = get_distribution(pitched, 'pitch_');
+    
+    let acceled=acceleration.filter((p) => Math.abs(p)>0.1);
+    let accel_distr = get_distribution(acceled, 'accel_');
+    accel_distr['accel_norm'] = acceled.reduce((acc,x)=>acc+Math.abs(x),0) / acceled.length; // XXX: percentiles...
 
-    return {smoothed, mean,
-	    p9, p91, p2, p98,
-	    velocity, acceleration,
-	    seg};
+    return Object.assign({smoothed,
+			  velocity,
+			  acceleration},
+			 pitch_distr, accel_distr);
 }
 
 function render_pitch(root, id, seq, attrs) {
@@ -473,35 +509,139 @@ function render_whiskers(root, id, stats, x1, x2) {
 	id: id + '-rect',
 	attrs: {
 	    x: x1,
-	    y: Math.min(pitch2y(stats.p9), pitch2y(stats.p91)),
+	    y: Math.min(pitch2y(stats.pitch_percentile_9), pitch2y(stats.pitch_percentile_91)),
 	    width: (x2-x1),
-	    height: Math.abs(pitch2y(stats.p9) - pitch2y(stats.p91)),
+	    height: Math.abs(pitch2y(stats.pitch_percentile_9) - pitch2y(stats.pitch_percentile_91)),
 	    stroke: 'rgba(0,0,0,0.5)',
 	    fill: 'none'
 	}
     });
     root.line({
-	id: id + '-mean',
+	id: id + '-pitch_mean',
 	attrs: {
 	    x1: x1,
 	    x2: x2,
-	    y1: pitch2y(stats.mean),
-	    y2: pitch2y(stats.mean),	    
+	    y1: pitch2y(stats.pitch_mean),
+	    y2: pitch2y(stats.pitch_mean),	    
 	    stroke: 'rgba(255,0,0,0.4)',
 	    fill: 'none'
 	}
     });    
 }
 
-function render_segs(root, head) {
+function get_stat_keys(pstats) {
+    return Object.keys(pstats)
+	.filter((x) => typeof(pstats[x]) != 'object' && x != 'seg')
+	.sort();
+}
+
+
+function render_segs_ss(root, head) {
     if(!render_is_ready(root)) {
 	return
     }
 
-    var meta = T.docs[T.cur_doc];
+    let sheet = root.div({id: 'ss', unordered: true});
 
+    // Global data.
+    let pstats = pitch_stats(T.cur_pitch);
+
+    Object.assign(pstats, time_stats(T.cur_align.segments.reduce((acc,x) => acc.concat(x.wdlist), [])));
+
+    let cur_y = 0;
+    const stat_keys = get_stat_keys(pstats);
+    
+    stat_keys
+	.forEach((key, col_idx) => {
+	    // Header
+	    sheet.div({id: 'h-' + key,
+		       text: key,
+		       classes: ['header', 'cell'],
+		       styles: {
+			   left: col_idx*150,
+			   top: 0,
+			   width: 150,
+			   height: 20
+		       }})
+	    // global
+	    let fval = Math.round(100 * pstats[key]) / 100;
+	    
+	    sheet.div({id: 'gv-' + key,
+		       text: '' + fval,
+		       classes: ['cell', 'global'],
+		       styles: {
+			   left: col_idx*150,
+			   top: 20,
+			   width: 150,
+			   height: 20
+		       }})	    
+	})
+    cur_y += 40;
+
+    // Dump segs
+    T.cur_align.segments
+	.forEach((seg, seg_idx) => {
+
+	    sheet.div({
+		id: 'segtxt-' + seg_idx,
+		text: seg.wdlist.filter((x) => x.type != 'gap').map((x) => x.word).join(''),
+		classes: ['cell', 'txt'],
+		styles: {
+		    top: cur_y+10
+		},
+		events: {
+		    onclick: (ev) => {
+			T.SHOW_SEGS = T.SHOW_SEGS||{};
+			T.SHOW_SEGS[seg_idx] = !T.SHOW_SEGS[seg_idx];
+			render();
+		    }
+		}
+	    })
+	    cur_y += 30;
+
+	    let sstats = pitch_stats(T.cur_pitch.slice(Math.round(seg.start*100), Math.round(seg.end*100)));
+
+	    Object.assign(sstats, time_stats(seg.wdlist));
+
+	    stat_keys
+		.forEach((key, col_idx) => {
+		    let fval = Math.round(100 * sstats[key]) / 100;
+		    if(isNaN(fval)) { fval = '' }
+	    
+		    sheet.div({id: 'sv-' + seg_idx + '-' + key,
+			       text: '' + fval,
+			       classes: ['cell'],
+			       styles: {
+				   left: col_idx*150,
+				   top: cur_y,
+				   width: 150,
+				   height: 20
+			       }})	    
+		});
+	    cur_y += 20;
+
+	    if((T.SHOW_SEGS||{})[seg_idx]) {
+		render_seg(sheet.div({id: 'seg-view-' + seg_idx,
+				      classes: ['cell'],
+				      styles: {
+					  top: cur_y
+				      }}),
+			   seg, seg_idx);
+		cur_y += T.PITCH_H;
+	    }
+
+	});
+
+    // T.cur_align.segments.forEach((seg, seg_idx) => {
+	
+    // })
+}
+
+function render_segs(root, head) {
+    if(!render_is_ready(root)) {
+	return
+    }
     T.cur_align.segments.forEach((seg, seg_idx) => {
-
 	render_seg(root, seg, seg_idx);
     })
 
@@ -550,7 +690,7 @@ function render_seg(root, seg, seg_idx) {
 
     let seq_stats = pitch_stats(
 	T.cur_pitch.slice(Math.round(seg.start*100),
-			  Math.round(seg.end*100)), seg);
+			  Math.round(seg.end*100)));
 
     render_whiskers(svg, 'segwhisk-' + seg_idx,
 		    seq_stats, T.LPAD, seg_w);
@@ -634,7 +774,7 @@ function render_seg(root, seg, seg_idx) {
 	}
 
 	let wd_stats = pitch_stats(T.cur_pitch.slice(Math.round(wd.start*100),
-						     Math.round(wd.end*100)), seg);
+						     Math.round(wd.end*100)));
 
 	if(wd_stats) {
 	    render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
@@ -645,10 +785,10 @@ function render_seg(root, seg, seg_idx) {
 	
 	svg.text({id: 'txt-' + seg_idx + '-' + wd_idx,
 		  text: wd.word,
-		  class: wd.type=='unaligned' ? 'unaligned' : 'word',
 		  attrs: {
+		      class: wd.type=='unaligned' ? 'unaligned' : 'word',
 		      x: t2x(wd.start - seg.start),
-		      y: pitch2y((wd_stats&&wd_stats.mean) || seq_stats.mean) - 2,
+		      y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
 		      fill: '#3B5161',
 		  }
 		 })
@@ -879,7 +1019,8 @@ function render() {
 
     if(T.cur_doc) {
         //render_doc(root, head);
-	render_segs(root, head);
+	//render_segs(root, head);
+	render_segs_ss(root);
     }
     else {
         render_uploader(root);
