@@ -1,4 +1,6 @@
-var T = T || {};
+var T = T || {
+    XSCALE: 200
+};
 
 if(!T.docs) {
     T.docs = {};
@@ -18,6 +20,7 @@ function reload_docs() {
             window.onhashchange();
 	}
 	if(ret.length > 0) {
+            window.onhashchange(); // !!!
             render();
 	}
 
@@ -137,7 +140,7 @@ function got_files(files) {
                             });
 
 			    // ...and RMS
-			    FARM.post_json("/_rms", {id: docid}, (c_ret) => {
+			    FARM.post_json("/_rms", {id: ret.id}, (c_ret) => {
 				console.log("rms returned");
 			    });
 
@@ -337,13 +340,11 @@ function doc_update() {
                 T.MIN_PITCH = min_pitch;
                 T.PITCH_SC = 1 / (max_pitch - min_pitch);
 
-		doc_update();		
                 render();
             });
             FARM.get_json('media/' + meta.align, (align) => {
                 T.cur_align = align;
 
-		doc_update();		
                 render();
             });
         }
@@ -352,8 +353,156 @@ function doc_update() {
     render();
 }
 
+function pitch_stats(seq) {
+    let pitched=seq.filter((p) => p>0);
+    if(pitched.length==0) {
+	return
+    }
 
-function render_doc(root, head) {
+    let mean=pitched.reduce((acc,x)=>acc+x,0) / pitched.length;
+    pitched.sort();
+    let p9 = pitched[Math.round(pitched.length * 0.09)];
+    let p91 = pitched[Math.round(pitched.length * 0.91)];
+
+    return {mean, p9, p91};
+}
+
+function render_segs(root, head) {
+    if(!render_is_ready(root)) {
+	return
+    }
+
+    var meta = T.docs[T.cur_doc];
+
+    T.cur_align.segments.forEach((seg, seg_idx) => {
+
+	// let segel = root.div({
+	//     id: 'seg-' + seg_idx,
+	//     classes: ['seg']
+	// });
+
+	let svg = root.svg({
+	    id: 'svg-' + seg_idx,
+	    attrs: {
+		width: Math.ceil((seg.end - seg.start)*T.XSCALE),
+		height: 500
+	    }
+	});
+
+	let seq_stats = pitch_stats(
+	    T.cur_pitch.slice(Math.round(seg.start*100),
+			      Math.round(seg.end*100)));
+
+	console.log('ss', seq_stats)
+
+	svg.line({id: 's-' + seg_idx,
+		  attrs: {
+		      x1: 0,
+		      y1: 500-seq_stats.mean,
+		      x2: (seg.end - seg.start)*T.XSCALE,
+		      y2: 500-seq_stats.mean,
+		      'stroke-width': 1.5,
+		      stroke: '#3B5161',
+		  }
+		 })
+	svg.line({id: 's9-' + seg_idx,
+		  attrs: {
+		      x1: 0,
+		      y1: 500-seq_stats.p9,
+		      x2: (seg.end - seg.start)*T.XSCALE,
+		      y2: 500-seq_stats.p9,
+		      'stroke-width': 1,
+		      stroke: '#C4D5D9',
+		  }
+		 })
+	svg.line({id: 's91-' + seg_idx,
+		  attrs: {
+		      x1: 0,
+		      y1: 500-seq_stats.p91,
+		      x2: (seg.end - seg.start)*T.XSCALE,
+		      y2: 500-seq_stats.p91,
+		      'stroke-width': 1,
+		      stroke: '#C4D5D9',
+		  }
+		 })		
+
+	// Draw the entire pitch trace
+	let ps = '';
+	let started=false;
+	T.cur_pitch.slice(Math.round(seg.start*100),
+			  Math.round(seg.end*100))
+	    .forEach((p,p_idx) => {
+		if(p > 0) {
+		    if(!started) {
+			ps += 'M ';
+		    }
+		    ps += '' + (p_idx/100)*T.XSCALE + ',' + (500-p) + ' ';
+		    started=true;
+		}
+		else {
+		    started=false;
+		}
+	    });
+	// console.log('path', ps)
+	svg.path({
+	    id: 'spath-' + seg_idx,
+	    attrs: {
+		d: ps,
+		stroke: 'rgba(0,0,0,0.5)',
+		fill: 'none'
+	    }
+	});
+	
+
+	// Draw each word
+	seg.wdlist.forEach((wd,wd_idx) => {
+
+	    if(!wd.end) { return }
+
+	    let avg_wd_pitch=0;
+	    let npitched=0;
+	    T.cur_pitch.slice(Math.round(wd.start*100),
+			      Math.round(wd.end*100))
+		.forEach((p) => {
+		    if(p > 0) {
+			avg_wd_pitch += p;
+			npitched += 1;
+		    }
+		});
+	    if(npitched > 0) {
+		avg_wd_pitch /= npitched;
+	    }
+	    
+	    svg.line({id: 'l-' + seg_idx + '-' + wd_idx,
+			attrs: {
+			    x1: (wd.start - seg.start)*T.XSCALE,
+			    y1: 500-avg_wd_pitch,
+			    x2: (wd.end - seg.start)*T.XSCALE,
+			    y2: 500-avg_wd_pitch,
+			    'stroke-width': 3,
+			    stroke: 'rgba(0,0,0,0.5)',
+			},
+			events: {
+			    onclick: () => {
+				console.log("click", wd);
+			    }
+			}
+		       })
+	
+	    // svg.line({id: 'line-' + seg_idx,
+	    // 	      attrs: {
+	    // 		  x1: 0,
+	    // 		  y1: 0,
+	    // 		  x2: 100,
+	    // 		  y2: 100,
+	    // 		  stroke: 'black'
+	    // 	      }})
+	})
+
+    });
+}
+
+function render_is_ready(root) {
     if(!T.docs[T.cur_doc]) {
         new PAL.Element("div", {
             parent: root,
@@ -363,14 +512,8 @@ function render_doc(root, head) {
     }
 
     var meta = T.docs[T.cur_doc];
-    new PAL.Element("div", {
-        id: "h3",
-        parent: head,
-        text: meta.title
-    });
-
+    
     if(!T.doc_ready) {
-        
         var txt = "Running computations...";
         
         if(!meta.align) {
@@ -395,6 +538,21 @@ function render_doc(root, head) {
 
         return;
     }
+
+    return true;
+}
+
+function render_doc(root, head) {
+    if(!render_is_ready(root)) {
+	return
+    }
+
+    var meta = T.docs[T.cur_doc];
+    new PAL.Element("div", {
+        id: "h3",
+        parent: head,
+        text: meta.title
+    });
 
     T.audio_el = new PAL.Element("audio", {
         id: "audio",
@@ -567,7 +725,8 @@ function render() {
     let head = render_header(root);
 
     if(T.cur_doc) {
-        render_doc(root, head);
+        //render_doc(root, head);
+	render_segs(root, head);
     }
     else {
         render_uploader(root);
@@ -814,8 +973,7 @@ window.onhashchange = () => {
         //setup_doc();
 	
 	T.wd_els = {};              // idx -> Element
-	doc_update();
-	
+	doc_update();		    // XXX: check this flow
 
         T.ticking = T.cur_doc;
         tick();
@@ -834,4 +992,4 @@ window.onhashchange = () => {
 }
 
 
-//render();
+render();

@@ -161,6 +161,8 @@ def align(cmd):
     wdlist = []
     end_offset = 0
     seg_idx = 0
+
+    cur_end = 0
     
     for wd in trans['words']:
         gap = trans['transcript'][end_offset:wd['startOffset']]
@@ -172,6 +174,15 @@ def align(cmd):
 
             seg['wdlist'] = gentle_punctuate(wdlist, trans['transcript'])
 
+            # Compute start & end
+            seg['start'] = seg['wdlist'][0].get('start', cur_end)
+            has_end = [X for X in seg['wdlist'] if X.get('end')]
+            if len(has_end) > 0:
+                seg['end'] = has_end[-1]['end']
+            else:
+                seg['end'] = cur_end
+            cur_end = seg['end']
+
             wdlist = []
             seg = {}
             diary['segments'].append(seg)
@@ -182,6 +193,14 @@ def align(cmd):
         end_offset = wd['endOffset']
 
     seg['wdlist'] = gentle_punctuate(wdlist, trans['transcript'])
+
+    # Compute start & end
+    seg['start'] = seg['wdlist'][0].get('start', cur_end)
+    has_end = [X for X in seg['wdlist'] if X.get('end')]
+    if len(has_end) > 0:
+        seg['end'] = has_end[-1]['end']
+    else:
+        seg['end'] = cur_end
 
     # For now, hit disk. Later we can explore the transcription DB.
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as dfh:

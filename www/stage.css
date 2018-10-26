@@ -167,3 +167,8 @@ a {
     min-width: 100px;
     display: inline-block;
 }
+
+
+.svgseg {
+    display: block;
+}
