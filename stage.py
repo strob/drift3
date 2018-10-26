@@ -46,7 +46,7 @@ def parse_speakers_in_transcript(trans):
 
     cur_speaker = None
     for line in trans.split('\n'):
-        if ':' in line and line.index(':') < 30:
+        if ':' in line and line.index(':') < 32 and len(line.split(':')[0].split(' ')) < 3:
             cur_speaker = line.split(':')[0]
             line = ':'.join(line.split(':')[1:])
 
