@@ -134,8 +134,6 @@ function got_files(files) {
                             FARM.post_json("/_pitch", {id: ret.id}, (p_ret) => {
                                 console.log("pitch returned");
 
-                                T.docs[ret.id].pitch = p_ret.pitch;
-                                render();
                             });
                         });
 
@@ -221,8 +219,6 @@ function render_doclist(root) {
                             FARM.post_json("/_pitch", {id: doc.id}, (ret) => {
                                 console.log("pitch returned");
 
-                                T.docs[doc.id].pitch = ret.pitch;
-                                render();
                             });
 
                         }
@@ -288,8 +284,10 @@ function render_paste_transcript(root, docid) {
                             FARM.post_json("/_align", {id: docid}, (p_ret) => {
                                 console.log("align returned");
 
-                                T.docs[docid].align = p_ret.align;
-                                render();
+				// Trigger CSV computation (assuming pitch also there)
+				FARM.post_json("/_csv", {id: docid}, (c_ret) => {
+				    console.log("csv returned");
+				});
                             });
 
                             
@@ -393,17 +391,19 @@ function render_doc(root, head) {
             src: "/media/" + meta.path
         }
     });
-
-    new PAL.Element("a", {
-        id: "csv-dl",
-        parent: head,
-        text: "Download csv",
-        attrs: {
-            href: "/_dl.csv?id=" + T.cur_doc,
-            target: "_blank",
-            download: meta.title + "-drift.csv"
-        }
-    });
+    
+    if(T.docs[T.cur_doc].csv) {
+	new PAL.Element("a", {
+            id: "csv-dl",
+            parent: head,
+            text: "Download csv",
+            attrs: {
+		href: '/media/' + T.docs[T.cur_doc].csv,
+		target: "_blank",
+		download: meta.title + "-drift.csv"
+            }
+	});
+    }
     
 
     render_doc_graph(root);    

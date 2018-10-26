@@ -1,3 +1,4 @@
+import csv
 import tempfile
 import subprocess
 import json
@@ -197,3 +198,71 @@ def align(cmd):
     
 
 root.putChild("_align", guts.PostJson(align, async=True))
+
+def gen_csv(cmd):
+    docid = cmd['id']
+    meta = rec_set.get_meta(docid)
+
+    p_path = os.path.join(get_attachpath(), meta['pitch'])
+    pitch = [float(X.split()[1]) for X in open(p_path) if len(X.split())>2]
+
+    a_path = os.path.join(get_attachpath(), meta['align'])    
+    align = json.load(open(a_path))
+
+    words = []
+    for seg in align['segments']:
+        for wd in seg['wdlist']:
+            wd_p = dict(wd)
+            wd_p['speaker'] = seg['speaker']
+            words.append(wd_p)
+
+    with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as fp:
+        w = csv.writer(fp)
+
+        w.writerow(['time (s)', 'pitch (hz)', 'word', 'phoneme', 'speaker'])
+
+        for idx, pitch in enumerate(pitch):
+            t = idx / 100.0
+
+            wd_txt = None
+            ph_txt = None
+            speaker= None
+
+            for wd_idx, wd in enumerate(words):
+                if wd.get('start') is None:
+                    continue
+                
+                if wd['start'] <= t and wd['end'] >= t:
+                    wd_txt = wd['word'].encode('utf-8')
+
+                    speaker = wd['speaker']
+
+                    # find phone
+                    cur_t = wd['start']
+                    for phone in wd['phones']:
+                        if cur_t + phone['duration'] >= t:
+                            ph_txt = phone['phone']
+                            break
+                        cur_t += phone['duration']
+
+                    break
+
+            row = [t, pitch, wd_txt, ph_txt, speaker]
+            w.writerow(row)
+
+        fp.flush()
+
+    csvhash = guts.attach(fp.name, get_attachpath())
+    guts.bschange(rec_set.dbs[cmd['id']], {
+        "type": "set",
+        "id": "meta",
+        "key": "csv",
+        "val": csvhash
+        })
+            
+    return {'csv': csvhash}
+
+root.putChild("_csv", guts.PostJson(gen_csv, async=True))
+
+gen_csv({'id': 'cb3a22ca'})
+
