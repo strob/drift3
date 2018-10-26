@@ -2,14 +2,29 @@ var T = T || {};
 
 if(!T.docs) {
     T.docs = {};
-    FARM.get_json("/_rec/_infos.json", (ret) => {
+    reload_docs();
+}
+
+function reload_docs() {
+    T.LAST_T = T.LAST_T || 0;
+    let firsttime = !T.LAST_T;
+    
+    FARM.get_json("/_rec/_infos.json?since=" + T.LAST_T, (ret) => {
 	ret.forEach((doc) => {
             T.docs[doc.id] = doc;
+	    T.LAST_T = Math.max(T.LAST_T, doc.modified_time);
 	});
-        window.onhashchange();
-        render();
+	if(firsttime) {
+            window.onhashchange();
+	}
+	if(ret.length > 0) {
+            render();
+	}
+
+	window.setTimeout(reload_docs, 1000);
     });
 }
+
 
 function get_docs() {
     return Object.keys(T.docs)
