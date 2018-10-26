@@ -320,8 +320,13 @@ function doc_update() {
     if(!T.doc_ready) {
         var meta = T.docs[T.cur_doc];
 
-        if(meta.pitch && meta.align && meta.path) {
+        if(meta.pitch && meta.align && meta.path && meta.rms) {
             T.doc_ready = true;
+
+            FARM.get_json('media/' + meta.rms, (rms) => {
+                T.cur_rms = rms;
+		render();
+	    })	    
 
             FARM.get('media/' + meta.pitch, (pitch) => {
                 // parse ellis pitch
@@ -588,6 +593,26 @@ function render_seg(root, seg, seg_idx) {
 			  }});
 			 
 	    }
+	});
+
+    // Draw amplitude
+    T.cur_rms
+	.slice(Math.round(seg.start*100),
+	       Math.round(seg.end*100))
+	.forEach((r, r_idx) => {
+
+	    let h = r * T.PITCH_H/5;
+	    let cy = 9.25/10 * T.PITCH_H;
+	    
+	    svg.line({id: 'rms-' + seg_idx + '-' + r_idx,
+		      attrs: {
+			  x1: fr2x(r_idx),
+			  y1: cy - (h/2),
+			  x2: fr2x(r_idx),
+			  y2: cy + (h/2),
+			  stroke: 'black',
+			  'stroke-width': 2,
+		      }})
 	});
 
     // Draw each word
