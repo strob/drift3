@@ -135,6 +135,16 @@ function got_files(files) {
                                 console.log("pitch returned");
 
                             });
+
+			    // ...and RMS
+			    FARM.post_json("/_rms", {id: docid}, (c_ret) => {
+				console.log("rms returned");
+			    });
+
+			    // // TODO: FFT
+			    // FARM.post_json("/_fft", {id: docid}, (c_ret) => {
+			    // 	console.log("rms returned");
+			    // });
                         });
 
                     }, function(p, cur_uploading) {
@@ -326,11 +336,14 @@ function doc_update() {
                 });
                 T.MIN_PITCH = min_pitch;
                 T.PITCH_SC = 1 / (max_pitch - min_pitch);
-                
+
+		doc_update();		
                 render();
             });
             FARM.get_json('media/' + meta.align, (align) => {
                 T.cur_align = align;
+
+		doc_update();		
                 render();
             });
         }
@@ -638,7 +651,7 @@ function blit_graph_can() {
     render_waveform(ctx, {start:start, end:end}, {left: 0, top: 0, width: w, height: h}, h);
 
     // Draw axes
-    var y_axes = [50, 100, 150, 200, 250, 300, 350];
+    var y_axes = [50, 100, 150, 200, 250, 300, 350, 400];
     y_axes.forEach((yval) => {
         var y_px = pitch2y(yval, h);
 

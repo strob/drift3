@@ -3,6 +3,8 @@ import tempfile
 import subprocess
 import json
 import os
+import nmt
+import numpy as np
 
 def pitch(cmd):
     docid = cmd['id']
@@ -264,5 +266,39 @@ def gen_csv(cmd):
 
 root.putChild("_csv", guts.PostJson(gen_csv, async=True))
 
-gen_csv({'id': 'cb3a22ca'})
+def rms(cmd):
+    docid = cmd['id']
+    info = rec_set.get_meta(docid)
+    
+    vpath = os.path.join('local', '_attachments', info['path'])
 
+    R = 44100
+
+    snd = nmt.sound2np(vpath, R=R, nchannels=1, ffopts=['-filter:a', 'dynaudnorm'])
+    
+    WIN_LEN = R/100
+    
+    rms = []
+    for idx in range(len(snd) / WIN_LEN):
+        chunk = snd[idx*WIN_LEN:(idx+1)*WIN_LEN]
+        rms.append((chunk.astype(float) ** 2).sum() / len(chunk))
+    rms = np.array(rms)
+
+    rms -= rms.min()
+    rms /= rms.max()
+
+    with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as fh:
+        json.dump(rms.tolist(), fh)
+
+        rmshash = guts.attach(fh.name, get_attachpath())
+
+    guts.bschange(rec_set.dbs[docid], {
+        "type": "set",
+        "id": "meta",
+        "key": "rms",
+        "val": rmshash
+        })
+
+    return {'rms': rmshash}
+
+root.putChild('_rms', guts.PostJson(rms, async=True))
