@@ -2,6 +2,7 @@ var T = T || {};
 T.XSCALE = 250;
 T.PITCH_H= 500;
 T.LPAD = 50;
+T.MAX_A= 15;
 
 if(!T.docs) {
     T.docs = {};
@@ -354,12 +355,65 @@ function doc_update() {
     render();
 }
 
+function smooth(seq, N) {
+    N = N || 5;
+
+    let out = [];
+
+    for(let i=0; i<seq.length; i++) {
+
+	let npitched = 0;
+	let v = 0;
+	
+	for(let j=0; j<N; j++) {
+	    let j1 = Math.max(0, Math.min(j+i, seq.length-1));
+	    var v1 = seq[j1];
+	    if(v1 > 20) {
+		v += v1;
+		npitched += 1;
+	    }
+	    else if(j1 >= i) {
+		// Hit gap after idx
+		break
+	    }
+	    else if(j1 <= i) {
+		// Hit gap before/on: reset
+		npitched=0;
+		v=0;
+	    }
+	}
+	if(npitched > 1) {
+	    v /= npitched;
+	}
+
+	out.push(v);
+    }
+
+    return out;
+}
+
+function derivative(seq) {
+    let out = [];
+    for(let i=0; i<seq.length; i++) {
+	let s1 = seq[i];
+	let s2 = seq[i+1];
+    	if(s1 && s2) {// && s1 > 20 && s2 > 20) {
+	    out.push(s2 - s1);
+	}
+	else {
+	    out.push(0)
+	}
+    }
+    return out;
+}
+
 function pitch_stats(seq, seg) {
 
-    let velocity = [];
+    let smoothed = smooth(seq);
 
-    
-    
+    let velocity = derivative(smoothed);
+    let acceleration = derivative(velocity);
+
     let pitched=seq.filter((p) => p>20);
     if(pitched.length==0) {
 	return
@@ -373,8 +427,41 @@ function pitch_stats(seq, seg) {
     let p2 = pitched[Math.floor(pitched.length * 0.02)];
     let p98 = pitched[Math.floor(pitched.length * 0.98)];
 
-    return {mean, p9, p91, p2, p98, seg};
+    return {smoothed, mean,
+	    p9, p91, p2, p98,
+	    velocity, acceleration,
+	    seg};
 }
+
+function render_pitch(root, id, seq, attrs) {
+    // Draw the entire pitch trace
+    let ps = '';
+    let started=false;
+    seq
+	.forEach((p,p_idx) => {
+	    if(p > 0) {
+		if(!started) {
+		    ps += 'M ';
+		}
+		ps += '' + fr2x(p_idx) + ',' + (pitch2y(p)) + ' ';
+		started=true;
+	    }
+	    else {
+		started=false;
+	    }
+	});
+    
+    root.path({
+	id: id,
+	attrs: Object.assign({
+	    d: ps,
+	    'stroke-width': 1,
+	    fill: 'none'
+	}, attrs||{})
+    });
+
+}
+
 
 function render_whiskers(root, id, stats, x1, x2) {
     root.rect({
@@ -422,7 +509,7 @@ function render_seg(root, seg, seg_idx) {
     //     classes: ['seg']
     // });
 
-    const seg_w = T.LPAD + Math.ceil((seg.end - seg.start)*T.XSCALE);
+    const seg_w = t2x(seg.end - seg.start);
 
     let svg = root.svg({
 	id: 'svg-' + seg_idx,
@@ -464,34 +551,44 @@ function render_seg(root, seg, seg_idx) {
 		    seq_stats, T.LPAD, seg_w);
 
 
-    // Draw the entire pitch trace
-    let ps = '';
-    let started=false;
-    T.cur_pitch.slice(Math.round(seg.start*100),
-		      Math.round(seg.end*100))
-	.forEach((p,p_idx) => {
-	    if(p > 0) {
-		if(!started) {
-		    ps += 'M ';
-		}
-		ps += '' + (T.LPAD + (p_idx/100)*T.XSCALE) + ',' + (pitch2y(p)) + ' ';
-		started=true;
-	    }
-	    else {
-		started=false;
+    render_pitch(
+	svg, 'spath-' + seg_idx,
+	T.cur_pitch.slice(Math.round(seg.start*100),
+			  Math.round(seg.end*100)),
+	{
+	    stroke: '#CCBDED',
+	    'stroke-width': 1,
+	}
+    );
+
+    render_pitch(
+	svg, 'sspath-' + seg_idx,
+	seq_stats.smoothed,
+	{
+	    stroke: '#8D78B9',
+	    'stroke-width': 3,
+	}
+    );
+
+    // Draw acceleration
+    seq_stats.acceleration
+	.forEach((a, a_idx) => {
+	    if(Math.abs(a) > 0.05) {
+
+		let h = (a/T.MAX_A) * T.PITCH_H;
+		let cy = pitch2y(seq_stats.smoothed[a_idx]);
+		
+		svg.line({id: 'a-' + a_idx,
+			  attrs: {
+			      x1: fr2x(a_idx),
+			      y1: cy - h/2,
+			      x2: fr2x(a_idx),
+			      y2: cy + h/2,
+			      stroke: '#FFBA08'
+			  }});
+			 
 	    }
 	});
-    
-    svg.path({
-	id: 'spath-' + seg_idx,
-	attrs: {
-	    d: ps,
-	    stroke: '#8D78B9', //'#CCBDED',//rgba(0,0,0,0.5)',
-	    'stroke-width': 3,
-	    fill: 'none'
-	}
-    });
-    
 
     // Draw each word
     seg.wdlist.forEach((wd,wd_idx) => {
@@ -506,15 +603,15 @@ function render_seg(root, seg, seg_idx) {
 
 	render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
 			wd_stats,
-			T.LPAD + (wd.start - seg.start)*T.XSCALE,
-			T.LPAD + (wd.end - seg.start)*T.XSCALE)
+			t2x(wd.start - seg.start),
+			t2x(wd.end - seg.start))
 	
 	svg.text({id: 'txt-' + seg_idx + '-' + wd_idx,
 		  text: wd.word,
 		  attrs: {
-		      x: T.LPAD + (wd.start - seg.start)*T.XSCALE,
+		      x: t2x(wd.start - seg.start),
 		      y: pitch2y(wd_stats.mean) - 2,
-		      fill: '#3B5161'
+		      fill: '#3B5161',
 		  }
 		 })
     });
@@ -952,6 +1049,14 @@ function render_waveform(ctx, w, rect, p_h) {
         ctx.stroke();
     }
 }
+
+function fr2x(fr) {
+    return T.LPAD + (fr/100.0)*T.XSCALE;
+}
+function t2x(t) {
+    return T.LPAD + t*T.XSCALE;
+}
+
 
 function pitch2y(p, p_h) {
     if(p == 0) {
