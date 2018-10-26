@@ -482,61 +482,23 @@ function render_doc_graph(root) {
 }
 
 function render_doc_paragraph(root) {
-    var p_idx = 0;
-
-    var cur_p = new PAL.Element("div", {
-        parent: root,
-        id: "p-" + p_idx
-    });
-
-    var offset_idx = 0;
-    T.cur_align.words.forEach((wd, wd_idx) => {
+    T.cur_align.segments.forEach((seg, seg_idx) => {
         
-        if(wd.startOffset && wd.startOffset > offset_idx) {
-            var gap_txt = T.cur_align.transcript.slice(offset_idx, wd.startOffset);
-            var newline_idx = gap_txt.indexOf('\n');
-            if(newline_idx >= 0) {
-                var pre_line_txt = gap_txt.slice(0, newline_idx);
-                if(pre_line_txt) {
-                    new PAL.Element("span", {
-                        parent: cur_p,
-                        id: "gap-pre-" + wd_idx,
-                        text: pre_line_txt
-                    });
-                }
-                
-                // new paragraph
-                p_idx += 1;
-                cur_p = new PAL.Element("div", {
-                    parent: root,
-                    id: "p-" + p_idx
-                });
-
-                gap_txt = gap_txt.slice(newline_idx);
-            }
-
-            // dump (rest of) gap
-            new PAL.Element("span", {
-                id: "gap-" + wd_idx,
-                parent: cur_p,
-                text: gap_txt,
-            })
-        }
-
-        if(wd.endOffset) {
-            T.wd_els[wd_idx] = new PAL.Element("span", {
-                id: "wd-" + wd_idx,
+        let segel = root.div({
+            id: "p-" + seg_idx
+        });
+	seg.wdlist.forEach((wd, wd_idx) => {
+            segel.span({
+                id: "wd-" + seg_idx + '-' + wd_idx,
                 text: wd.word,
-                parent: cur_p,
                 events: {
                     onclick: () => {
                         T.audio_el.$el.currentTime = wd.start;
                     }
                 }
             });
+	});
 
-            offset_idx = wd.endOffset;
-        }
     });
 
     T.wd_can = new PAL.Element("canvas", {
@@ -553,6 +515,9 @@ function render_doc_paragraph(root) {
 
 function place_underline() {
     // see if we have a word intersection
+
+    return
+    // TODO
 
     if(!T.cur_align) {
         return;
@@ -600,7 +565,9 @@ function render() {
     
 }
 
-function blit_wd_can() {
+    function blit_wd_can() {
+	return;
+	
     var $can = T.wd_can.$el;
 
     // Compute word positions
@@ -690,30 +657,31 @@ function blit_graph_can() {
     
     // Draw in-view words, in-time
     if(T.cur_align) {
-        T.cur_align.words.forEach((wd) => {
-            if(!wd.end || wd.start >= end || wd.end <= start) {
-                return;
-            }
+        T.cur_align.segments.forEach((seg) => {
+	    seg.wdlist.forEach((wd) => {
+		if(!wd.end || wd.start >= end || wd.end <= start) {
+                    return;
+		}
 
-            var x = w * ((wd.start - start) / (end-start));
+		var x = w * ((wd.start - start) / (end-start));
 
-            ctx.fillStyle = "#263238";
-            ctx.font = "14pt Arial";
-            ctx.fillText(wd.word, x, wd_start_y)
+		ctx.fillStyle = "#263238";
+		ctx.font = "14pt Arial";
+		ctx.fillText(wd.word, x, wd_start_y)
 
-            wd.phones.forEach((ph) => {
+		wd.phones.forEach((ph) => {
 
-                ctx.fillStyle = "#B0BEC5";
-                ctx.font = "10pt Arial";
-                ctx.fillText(ph.phone.split("_")[0], x, wd_start_y+20)
+                    ctx.fillStyle = "#B0BEC5";
+                    ctx.font = "10pt Arial";
+                    ctx.fillText(ph.phone.split("_")[0], x, wd_start_y+20)
 
-                var ph_w = w * (ph.duration / (end-start));
+                    var ph_w = w * (ph.duration / (end-start));
 
-                ctx.fillRect(x, wd_start_y+5, ph_w, 2);
-                
-                x += ph_w;
-            });
-            
+                    ctx.fillRect(x, wd_start_y+5, ph_w, 2);
+                    
+                    x += ph_w;
+		});
+	    });
         })
     }
 
