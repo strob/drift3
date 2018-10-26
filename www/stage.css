@@ -176,3 +176,6 @@ a {
 .axis {
     font-size: 8pt;
 }
+.unaligned {
+    font-style: italic;
+}

@@ -595,22 +595,35 @@ function render_seg(root, seg, seg_idx) {
 
 	if(!wd.end) { return }
 
-	let wd_stats = pitch_stats(T.cur_pitch.slice(Math.round(wd.start*100),
-						     Math.round(wd.end*100)), seg);
-	if(!wd_stats) {
+	if(wd.type == 'gap'){
+	    svg.rect({id: 'gap-' + seg_idx + '-' + wd_idx,
+		      attrs: {
+			  x: t2x(wd.start-seg.start),
+			  y: 0,
+			  width: t2w(wd.end-wd.start),
+			  height: T.PITCH_H,
+			  fill: 'rgba(0,0,0,0.05)'
+		      }})
+	    
 	    return
 	}
 
-	render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
-			wd_stats,
-			t2x(wd.start - seg.start),
-			t2x(wd.end - seg.start))
+	let wd_stats = pitch_stats(T.cur_pitch.slice(Math.round(wd.start*100),
+						     Math.round(wd.end*100)), seg);
+
+	if(wd_stats) {
+	    render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
+			    wd_stats,
+			    t2x(wd.start - seg.start),
+			    t2x(wd.end - seg.start))
+	}
 	
 	svg.text({id: 'txt-' + seg_idx + '-' + wd_idx,
 		  text: wd.word,
+		  class: wd.type=='unaligned' ? 'unaligned' : 'word',
 		  attrs: {
 		      x: t2x(wd.start - seg.start),
-		      y: pitch2y(wd_stats.mean) - 2,
+		      y: pitch2y((wd_stats&&wd_stats.mean) || seq_stats.mean) - 2,
 		      fill: '#3B5161',
 		  }
 		 })
@@ -1051,10 +1064,13 @@ function render_waveform(ctx, w, rect, p_h) {
 }
 
 function fr2x(fr) {
-    return T.LPAD + (fr/100.0)*T.XSCALE;
+    return t2x(fr/100.0);
 }
 function t2x(t) {
-    return T.LPAD + t*T.XSCALE;
+    return T.LPAD + t2w(t);
+}
+function t2w(t) {
+    return t*T.XSCALE;
 }
 
 

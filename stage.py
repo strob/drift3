@@ -115,9 +115,52 @@ def gentle_punctuate(wdlist, transcript):
 
             out.append(wd_obj)
 
+    return gaps_and_unaligned(out)
+
+
+def gaps_and_unaligned(seq):
+    out = []
+
+    cur_unaligned = []
+    last_end = 0
+
+    for idx,wd in enumerate(seq):
+        if wd.get('end'):
+            if len(cur_unaligned) > 0:
+                # End of an unaligned block
+                out.append({
+                    'type': 'unaligned',
+                    'start': last_end,
+                    'end': wd['start'],
+                    'word': ''.join([X['word'] for X in cur_unaligned])
+                    })
+
+                cur_unaligned = []
+
+            if len(out) > 0 and out[-1]['end'] < wd['start']:
+                # gap
+                out.append({
+                    'type': 'gap',
+                    'start': last_end,
+                    'end': wd['start'],
+                    'word': '[gap]'
+                })
+                
+            out.append(wd)
+            last_end = wd['end']
+        else:
+            # unaligned
+            cur_unaligned.append(wd)
+
+    if len(cur_unaligned) > 0:
+        # End of an unaligned block
+        out.append({
+            'type': 'unaligned',
+            'start': last_end,
+            'word': '[%s]' % (''.join([X['word'] for X in cur_unaligned]))
+            })        
+
     return out
-
-
 
 def align(cmd):
     meta = rec_set.get_meta(cmd['id'])
