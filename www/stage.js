@@ -581,9 +581,9 @@ function render_seg(root, seg, seg_idx) {
 		svg.line({id: 'a-' + a_idx,
 			  attrs: {
 			      x1: fr2x(a_idx),
-			      y1: cy - h/2,
+			      y1: cy,
 			      x2: fr2x(a_idx),
-			      y2: cy + h/2,
+			      y2: cy - h,
 			      stroke: '#FFBA08'
 			  }});
 			 
