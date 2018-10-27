@@ -46,6 +46,9 @@ body {
     cursor: inherit;
     height: 200px;
 }
+.pending {
+     color: #90A4AE;
+} 
 .paste {
     font-style: italic;
     margin: 5px;

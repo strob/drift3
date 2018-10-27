@@ -1,4 +1,67 @@
 var T = T || {};
+var D = D || {};		// Data
+var C = C || {
+    STATUS: {
+	UNINITIALIZED: 'uninitialized',
+	LOADING: 'loading',
+	READY: 'ready',
+	ERROR: 'error'
+    }
+};
+
+function cached_get_url(url, proc_fn) {
+    D.urls = D.urls || {};
+    if(D.urls[url + '_status'] != C.STATUS.READY) {
+	if(D.urls[url + '_status'] != C.STATUS.LOADING) {
+	    D.urls[url + '_status'] = C.STATUS.LOADING;
+
+	    FARM.get(url, (ret) => {
+		if(proc_fn) {
+		    ret = proc_fn(ret);
+		}
+		D.urls[url] = ret;
+		D.urls[url + '_status'] = C.STATUS.READY;
+		render();	// XXX
+	    });
+	}
+	return {loading: true};
+    }
+    return D.urls[url];
+}
+
+// legacy
+function get_cur_pitch() {
+    return (get_data(T.cur_doc)||{}).pitch
+}
+function get_cur_align() {
+    return (get_data(T.cur_doc)||{}).align
+}
+function get_cur_rms() {
+    return (get_data(T.cur_doc)||{}).rms
+}
+
+function get_data(docid) {
+    // or null if they're not loaded...
+
+    let meta = T.docs[docid];
+    if(!meta) { return }
+
+    if(!meta.pitch) { return }
+    let pitch = cached_get_url('/media/' + meta.pitch, parse_pitch);
+    if(pitch.loading) { return }
+
+    if(!meta.align) { return }
+    let align = cached_get_url('/media/' + meta.align, JSON.parse);
+    if(align.loading) { return }
+
+    if(!meta.rms) { return }
+    let rms = cached_get_url('/media/' + meta.rms, JSON.parse);
+    if(rms.loading) { return }
+
+    return {pitch, align, rms}
+}
+
+
 T.XSCALE = 300;
 T.PITCH_H= 500;
 T.LPAD = 50;
@@ -169,81 +232,90 @@ function render_doclist(root) {
     get_docs()
         .forEach((doc) => {
 
-            var doc_has_everything = doc.path && doc.transcript;
-            
-            var docel = new PAL.Element("div", {
-                parent: root,
-                id: "item-" + doc.id,
-                classes: ['listitem', doc_has_everything ? 'ready' : 'pending'],
-                events: {
-                    onclick: () => {
-                        if(doc.path && doc.transcript) {
-                            window.location.hash = doc.id;
-                        }
-                    }
-                }
-            });
+            var doc_has_everything = doc.path && doc.transcript && get_docs(doc.id);
 
-            new PAL.Element("div", {
-                id: "del-" + doc.id,
-                classes: ['delete'],
-                text: 'delete',
-                events: {
-                    onclick: (ev) => {
-                        ev.preventDefault();
-                        ev.stopPropagation();
+            if(!doc_has_everything) {
+		var docel = root.div({
+                    id: "item-" + doc.id,
+                    classes: ['listitem', doc_has_everything ? 'ready' : 'pending'],
+		});
 
-                        FARM.post_json("/_rec/_remove", {id: doc.id}, (ret) => {
-                            delete T.docs[ret.remove];
-                            render();
-                        });
-                        
-                        console.log("delete", doc.id);
-                    }
-                },
-                parent: docel
-            });
-
-            new PAL.Element("div", {
-                id: "title-" + doc.id,
-                classes: ['title'],
-                text: doc.title,
-                parent: docel});
-
-            if(doc.upload_status && !doc.path) {
-                // Show progress
-                new PAL.Element("progress", {
-                    id: doc.id + '-progress',
-                    parent: docel,
-                    attrs: {
-                        max: "100",
-                        value: "" + Math.floor((100*doc.upload_status))
-                    },
-                })
-            }
-            if(!doc.pitch) {
-                new PAL.Element("div", {
-                    id: doc.id + "-pload",
-                    parent: docel,
-                    text: "Computing pitch...",
+		new PAL.Element("div", {
+                    id: "del-" + doc.id,
+                    classes: ['delete'],
+                    text: 'delete',
                     events: {
-                        onclick: (ev) => {
+			onclick: (ev) => {
                             ev.preventDefault();
                             ev.stopPropagation();
-                            
-                            FARM.post_json("/_pitch", {id: doc.id}, (ret) => {
-                                console.log("pitch returned");
 
+                            FARM.post_json("/_rec/_remove", {id: doc.id}, (ret) => {
+				delete T.docs[ret.remove];
+				render();
                             });
+                            
+                            console.log("delete", doc.id);
+			}
+                    },
+                    parent: docel
+		});
 
-                        }
-                    }
-                });
-            }
-            if(!doc.transcript) {
-                render_paste_transcript(docel, doc.id);
-            }
-        });
+		new PAL.Element("div", {
+                    id: "title-" + doc.id,
+                    classes: ['title'],
+                    text: doc.title,
+                    parent: docel});
+
+		if(doc.upload_status && !doc.path) {
+                    // Show progress
+                    new PAL.Element("progress", {
+			id: doc.id + '-progress',
+			parent: docel,
+			attrs: {
+                            max: "100",
+                            value: "" + Math.floor((100*doc.upload_status))
+			},
+                    })
+		}
+		if(!doc.pitch) {
+                    new PAL.Element("div", {
+			id: doc.id + "-pload",
+			parent: docel,
+			text: "Computing pitch...",
+			events: {
+                            onclick: (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+				
+				FARM.post_json("/_pitch", {id: doc.id}, (ret) => {
+                                    console.log("pitch returned");
+
+				});
+
+                            }
+			}
+                    });
+		}
+		if(!doc.transcript) {
+                    render_paste_transcript(docel, doc.id);
+		}
+	    }
+
+	    // doc ready!!
+
+	    root.div({id: doc.id,
+		      text: doc.title,
+		      classes: [get_data(doc.id) ? 'ready' : 'pending'],
+		      events: {
+			  onclick: () => {
+			      if(get_data(doc.id)) {
+				  window.location.hash = doc.id;
+			      }
+			  }
+		      }
+		     })
+		      
+	})
 }
 
 function render_paste_transcript(root, docid) {
@@ -315,49 +387,10 @@ function render_paste_transcript(root, docid) {
     });
 }
 
-function doc_update() {
-    // Check if this update makes a document somehow ... ready, in which case we load some things.
-    if(!T.doc_ready) {
-        var meta = T.docs[T.cur_doc];
-
-        if(meta.pitch && meta.align && meta.path && meta.rms) {
-            T.doc_ready = true;
-
-            FARM.get_json('media/' + meta.rms, (rms) => {
-                T.cur_rms = rms;
-		render();
-	    })	    
-
-            FARM.get('media/' + meta.pitch, (pitch) => {
-                // parse ellis pitch
-                T.cur_pitch = pitch.split('\n')
-                    .filter((x) => x.length > 5)
-                    .map((x) => Number(x.split(' ')[1]));
-
-                var max_pitch = 0;
-                var min_pitch = 0;
-                T.cur_pitch.forEach(function(x) {
-                    if(x > max_pitch) {
-                        max_pitch = x;
-                    }
-                    if(x > 0 && (x < min_pitch || min_pitch == 0)) {
-                        min_pitch = x;
-                    }
-                });
-                T.MIN_PITCH = min_pitch;
-                T.PITCH_SC = 1 / (max_pitch - min_pitch);
-
-                render();
-            });
-            FARM.get_json('media/' + meta.align, (align) => {
-                T.cur_align = align;
-
-                render();
-            });
-        }
-    }
-
-    render();
+function parse_pitch(pitch) {
+    return pitch.split('\n')
+        .filter((x) => x.length > 5)
+        .map((x) => Number(x.split(' ')[1]));
 }
 
 function smooth(seq, N) {
@@ -544,9 +577,9 @@ function render_segs_ss(root, head) {
     let sheet = root.div({id: 'ss', unordered: true});
 
     // Global data.
-    let pstats = pitch_stats(T.cur_pitch);
+    let pstats = pitch_stats(get_cur_pitch());
 
-    Object.assign(pstats, time_stats(T.cur_align.segments.reduce((acc,x) => acc.concat(x.wdlist), [])));
+    Object.assign(pstats, time_stats(get_cur_align().segments.reduce((acc,x) => acc.concat(x.wdlist), [])));
 
     let cur_y = 0;
     const stat_keys = get_stat_keys(pstats);
@@ -579,7 +612,7 @@ function render_segs_ss(root, head) {
     cur_y += 40;
 
     // Dump segs
-    T.cur_align.segments
+    get_cur_align().segments
 	.forEach((seg, seg_idx) => {
 
 	    sheet.div({
@@ -599,7 +632,7 @@ function render_segs_ss(root, head) {
 	    })
 	    cur_y += 30;
 
-	    let sstats = pitch_stats(T.cur_pitch.slice(Math.round(seg.start*100), Math.round(seg.end*100)));
+	    let sstats = pitch_stats(get_cur_pitch().slice(Math.round(seg.start*100), Math.round(seg.end*100)));
 
 	    Object.assign(sstats, time_stats(seg.wdlist));
 
@@ -631,29 +664,19 @@ function render_segs_ss(root, head) {
 	    }
 
 	});
-
-    // T.cur_align.segments.forEach((seg, seg_idx) => {
-	
-    // })
 }
 
 function render_segs(root, head) {
     if(!render_is_ready(root)) {
 	return
     }
-    T.cur_align.segments.forEach((seg, seg_idx) => {
+    get_cur_align().segments.forEach((seg, seg_idx) => {
 	render_seg(root, seg, seg_idx);
     })
 
 }
 
 function render_seg(root, seg, seg_idx) {
-
-    // let segel = root.div({
-    //     id: 'seg-' + seg_idx,
-    //     classes: ['seg']
-    // });
-
     const seg_w = t2x(seg.end - seg.start);
 
     let svg = root.svg({
@@ -661,6 +684,17 @@ function render_seg(root, seg, seg_idx) {
 	attrs: {
 	    width: seg_w,
 	    height: 500
+	},
+	events: {
+	    onclick: () => {
+		window.a = new Audio('/media/' + T.docs[T.cur_doc].path);//
+		window.setTimeout(() => {
+		    window.a.currentTime = seg.start-1;
+		    window.a.play();
+		}, 200)
+		//    + '#t=' + seg.start + ',' + (seg.end-seg.start));
+		//a.play()
+	    }
 	}
     });
 
@@ -689,7 +723,7 @@ function render_seg(root, seg, seg_idx) {
     });
 
     let seq_stats = pitch_stats(
-	T.cur_pitch.slice(Math.round(seg.start*100),
+	get_cur_pitch().slice(Math.round(seg.start*100),
 			  Math.round(seg.end*100)));
 
     render_whiskers(svg, 'segwhisk-' + seg_idx,
@@ -698,7 +732,7 @@ function render_seg(root, seg, seg_idx) {
 
     render_pitch(
 	svg, 'spath-' + seg_idx,
-	T.cur_pitch.slice(Math.round(seg.start*100),
+	get_cur_pitch().slice(Math.round(seg.start*100),
 			  Math.round(seg.end*100)),
 	{
 	    stroke: '#CCBDED',
@@ -736,7 +770,7 @@ function render_seg(root, seg, seg_idx) {
 	});
 
     // Draw amplitude
-    T.cur_rms
+    get_cur_rms()
 	.slice(Math.round(seg.start*100),
 	       Math.round(seg.end*100))
 	.forEach((r, r_idx) => {
@@ -773,7 +807,7 @@ function render_seg(root, seg, seg_idx) {
 	    return
 	}
 
-	let wd_stats = pitch_stats(T.cur_pitch.slice(Math.round(wd.start*100),
+	let wd_stats = pitch_stats(get_cur_pitch().slice(Math.round(wd.start*100),
 						     Math.round(wd.end*100)));
 
 	if(wd_stats) {
@@ -804,211 +838,7 @@ function render_is_ready(root) {
         return;
     }
 
-    var meta = T.docs[T.cur_doc];
-    
-    if(!T.doc_ready) {
-        var txt = "Running computations...";
-        
-        if(!meta.align) {
-            txt = "Alignment in progress..."    
-        }
-        
-        new PAL.Element("div", {
-            id: "not-ready",
-            parent: root,
-            text: txt
-        });
-
-        return;
-    }
-
-    if(!(T.cur_pitch && T.cur_align)) {
-        new PAL.Element("div", {
-            id: "doc-loading",
-            parent: root,
-            text: 'Loading...'
-        });
-
-        return;
-    }
-
-    return true;
-}
-
-function render_doc(root, head) {
-    if(!render_is_ready(root)) {
-	return
-    }
-
-    var meta = T.docs[T.cur_doc];
-    new PAL.Element("div", {
-        id: "h3",
-        parent: head,
-        text: meta.title
-    });
-
-    T.audio_el = new PAL.Element("audio", {
-        id: "audio",
-        parent: head,
-        attrs: {
-            controls: true,
-            src: "/media/" + meta.path
-        }
-    });
-    
-    if(T.docs[T.cur_doc].csv) {
-	new PAL.Element("a", {
-            id: "csv-dl",
-            parent: head,
-            text: "Download csv",
-            attrs: {
-		href: '/media/' + T.docs[T.cur_doc].csv,
-		target: "_blank",
-		download: meta.title + "-drift.csv"
-            }
-	});
-    }
-    
-
-    render_doc_graph(root);    
-
-    var para_el = new PAL.Element("div", {
-        id: "payload-para",
-        parent: root,
-        classes: ['paragraph']
-    });
-
-    render_doc_paragraph(para_el);
-
-    // Render zoom slider
-    var zoom_box = new PAL.Element("div", {
-        id: "zoom",
-        parent: root,
-        events: {
-            onmousedown: function(ev) {
-                ev.preventDefault();
-                
-                var px = (ev.clientX - this.offsetLeft) / this.clientWidth;
-                T.cur_zoom = (1-px);
-                blit_graph_can();
-
-                (function($el) {
-                    window.onmousemove = (ev) => {
-                        ev.preventDefault();
-
-                        var px = (ev.clientX - $el.offsetLeft) / $el.clientWidth;
-                        px = Math.max(0, Math.min(1, px));
-                        T.cur_zoom = (1-px);
-                        //blit_graph_can();
-                        render();
-
-                    };
-                })(this);
-
-                window.onmouseup = (ev) => {
-                    ev.preventDefault();
-                    window.onmousemove = null;
-                    render();
-                }
-            }
-        }
-    });
-
-    new PAL.Element("div", {
-        parent: zoom_box,
-        id: "zoom-text",
-        text: 'zoom'
-    });
-
-    new PAL.Element("div", {
-        parent: zoom_box,
-        id: "zoom-status",
-        styles: {
-            width: "" + Math.round(100*((1-T.cur_zoom)||0.5)) + "%"
-        }
-    });
-}
-
-function render_doc_graph(root) {
-    T.graph_can = new PAL.Element("canvas", {
-        parent: root,
-        id: "graph",
-        events: {
-            onclick: function(ev) {
-                // Click to seek
-                var px = (ev.clientX - this.offsetLeft) / this.offsetWidth;
-                console.log("px", px);
-
-                T.audio_el.$el.currentTime = T.graph_start + px*(T.graph_end - T.graph_start);
-            }
-        }
-    });
-}
-
-function render_doc_paragraph(root) {
-    T.cur_align.segments.forEach((seg, seg_idx) => {
-        
-        let segel = root.div({
-            id: "p-" + seg_idx
-        });
-
-	if(seg.speaker) {
-	    segel.div({
-		id: 'spekr-' + seg_idx,
-		classes: ['spkr'],
-		text: seg.speaker + ': '
-	    });
-	}
-	
-	seg.wdlist.forEach((wd, wd_idx) => {
-            segel.span({
-                id: "wd-" + seg_idx + '-' + wd_idx,
-                text: wd.word,
-                events: {
-                    onclick: () => {
-                        T.audio_el.$el.currentTime = wd.start;
-                    }
-                }
-            });
-	});
-
-    });
-
-    T.wd_can = new PAL.Element("canvas", {
-        id: "wdcan",
-        parent: root
-    });
-
-    // ...and a little underline here
-    T.underline_el = new PAL.Element("div", {
-        id: "underline",
-        parent: root
-    });
-}
-
-function place_underline() {
-    // see if we have a word intersection
-
-    return
-    // TODO
-
-    if(!T.cur_align) {
-        return;
-    }
-    T.cur_align.words
-        .forEach((wd, wd_idx) => {
-            if(wd.start <= T.cur_t && wd.end >= T.cur_t) {
-
-                var pos = T.wd_pos[wd_idx];
-                if(pos) {
-
-                    T.underline_el.$el.style.left = pos.left + pos.width/2 - 4;
-                    T.underline_el.$el.style.top = pos.top + 15;
-                    
-                }
-                
-            }
-        })
+    return get_data(T.cur_doc);
 }
 
 function render() {
@@ -1071,7 +901,7 @@ function render() {
 
     var ctx = $can.getContext('2d');
 
-    T.cur_align.words.forEach(function(w, w_idx) {
+    get_cur_align().words.forEach(function(w, w_idx) {
         if(w_idx in T.wd_pos) {
             render_waveform(ctx, w, T.wd_pos[w_idx]);
         }
@@ -1131,8 +961,8 @@ function blit_graph_can() {
     var wd_start_y = pitch2y(75, h);
     
     // Draw in-view words, in-time
-    if(T.cur_align) {
-        T.cur_align.segments.forEach((seg) => {
+    if(get_cur_align()) {
+        get_cur_align().segments.forEach((seg) => {
 	    seg.wdlist.forEach((wd) => {
 		if(!wd.end || wd.start >= end || wd.end <= start) {
                     return;
@@ -1168,7 +998,7 @@ function blit_graph_can() {
 
 
 function render_waveform(ctx, w, rect, p_h) {
-    if(!w.end || !T.cur_pitch) {
+    if(!w.end || !get_cur_pitch()) {
         return;
     }
     
@@ -1197,24 +1027,24 @@ function render_waveform(ctx, w, rect, p_h) {
     ctx.lineWidth = 1;
 
     var offset = 0;
-    while(!T.cur_pitch[st_idx+offset]) {
+    while(!get_cur_pitch()[st_idx+offset]) {
         offset += 1
-        if(offset >= T.cur_pitch.length) {
+        if(offset >= get_cur_pitch().length) {
             break;
         }
     }
 
     var in_line = false;
     for(var i=st_idx; i<=end_idx; i++) {
-        if(T.cur_pitch[i]) {
+        if(get_cur_pitch()[i]) {
             if(!in_line) {
                 ctx.beginPath();
-                ctx.moveTo(x + (i-st_idx)*step, y + y_off + pitch2y(T.cur_pitch[i], p_h));
-                //ctx.moveTo(x + offset*step, y + y_off + pitch2y(T.cur_pitch[st_idx+offset], p_h));
+                ctx.moveTo(x + (i-st_idx)*step, y + y_off + pitch2y(get_cur_pitch()[i], p_h));
+                //ctx.moveTo(x + offset*step, y + y_off + pitch2y(get_cur_pitch()[st_idx+offset], p_h));
                 in_line = true;
             }
             else {
-                ctx.lineTo(x + (i-st_idx)*step, y + y_off + pitch2y(T.cur_pitch[i], p_h));
+                ctx.lineTo(x + (i-st_idx)*step, y + y_off + pitch2y(get_cur_pitch()[i], p_h));
             }
         }
         else {
@@ -1245,33 +1075,6 @@ function pitch2y(p, p_h) {
         return p;
     }
     return T.PITCH_H - p;
-    
-    // p_h = p_h || T.PITCH_H;
-    
-    // if(p == 0) {
-    //     return p;
-    // }
-    // return p_h - (p - T.MIN_PITCH) * T.PITCH_SC * p_h;
-}
-
-function tick() {
-    if(T.ticking != T.cur_doc) {
-        T.ticking = false;
-        return;
-    }
-
-    if(T.audio_el && T.audio_el.$el) {
-        var t = T.audio_el.$el.currentTime;
-        //if(!T.cur_t || Math.abs(t-T.cur_t)>1/50) {
-        if(!T.cur_t || t != T.cur_t) {
-            T.cur_t = t;
-            blit_graph_can();
-
-            place_underline();
-        }
-    }
-
-    window.requestAnimationFrame(tick);
 }
 
 window.onhashchange = () => {
@@ -1279,23 +1082,14 @@ window.onhashchange = () => {
     console.log("hash", docid, window);
     
     if(docid in T.docs) {
+	T.SHOW_SEGS={};
         T.cur_doc = docid;
-        //setup_doc();
-	
-	T.wd_els = {};              // idx -> Element
-	doc_update();		    // XXX: check this flow
-
-        T.ticking = T.cur_doc;
-        tick();
     }
     else if(docid) {
         window.location.hash = "";
         return;
     }
     else {
-        // if(T.cur_doc) {
-        //     teardown_doc();
-        // }
         T.cur_doc = undefined;
     }
     render();
