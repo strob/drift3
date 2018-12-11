@@ -196,7 +196,6 @@ def align(cmd):
             trans = json.load(open(fp.name))
 
     # Re-diarize Gentle output into a sane diarization format
-
     diary = {'segments': [{}]}
     seg = diary['segments'][0]
     seg['speaker'] = segs[0]['speaker']
@@ -364,3 +363,5 @@ def rms(cmd):
     return {'rms': rmshash}
 
 root.putChild('_rms', guts.PostJson(rms, async=True))
+
+#align({'id': 'f271e2b9'})

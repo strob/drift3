@@ -75,7 +75,7 @@ if(!T.docs) {
 function reload_docs() {
     T.LAST_T = T.LAST_T || 0;
     let firsttime = !T.LAST_T;
-    
+
     FARM.get_json("/_rec/_infos.json?since=" + T.LAST_T, (ret) => {
 	ret.forEach((doc) => {
             T.docs[doc.id] = doc;
@@ -104,7 +104,7 @@ function render_header(root) {
     var head = root.div({
         id: 'head'
     });
-    
+
     head.div({
         id: 'logo',
         text: "drift3",
@@ -129,7 +129,7 @@ function render_uploader(root) {
                 ev.stopPropagation();
                 ev.preventDefault();
                 ev.dataTransfer.dropEffect = "copy";
-                
+
                 T.drag_over=true;
                 render();
             },
@@ -143,7 +143,7 @@ function render_uploader(root) {
             ondrop: function(ev) {
                 ev.stopPropagation();
                 ev.preventDefault();
-                        
+
                 console.log("drop");
                 T.drag_over=false;
                 render();
@@ -155,7 +155,7 @@ function render_uploader(root) {
     new PAL.Element("br", {
         id: "u-br",
         parent: upl});
-    
+
     new PAL.Element("input", {
         parent: upl,
         attrs: {
@@ -174,7 +174,7 @@ function render_uploader(root) {
 function got_files(files) {
     if(files.length > 0) {
         for(var i=0; i<files.length; i++) {
-            
+
             (function(file) {
 
                 var drift_doc = {
@@ -221,7 +221,7 @@ function got_files(files) {
                     });
 
                 });
-                
+
             })(files[i]);
         }
     }
@@ -253,7 +253,7 @@ function render_doclist(root) {
 				delete T.docs[ret.remove];
 				render();
                             });
-                            
+
                             console.log("delete", doc.id);
 			}
                     },
@@ -286,7 +286,7 @@ function render_doclist(root) {
                             onclick: (ev) => {
 				ev.preventDefault();
 				ev.stopPropagation();
-				
+
 				FARM.post_json("/_pitch", {id: doc.id}, (ret) => {
                                     console.log("pitch returned");
 
@@ -314,7 +314,7 @@ function render_doclist(root) {
 			  }
 		      }
 		     })
-		      
+
 	})
 }
 
@@ -326,7 +326,7 @@ function render_paste_transcript(root, docid) {
         classes: ['paste'],
         text: "paste in a transcript to continue"
     });
-    
+
     // T.transpastes[docid] =
     new PAL.Element("textarea", {
         parent: root,
@@ -353,7 +353,7 @@ function render_paste_transcript(root, docid) {
                 ev.stopPropagation();
 
                 // XXX: do something to prevent dual-submission...
-                
+
                 var txt = document.getElementById('tscript-' + docid).value;
                 if(txt) {
                     var blob = new Blob([txt]);
@@ -377,7 +377,7 @@ function render_paste_transcript(root, docid) {
 				});
                             });
 
-                            
+
                         });
                     });
                 }
@@ -402,7 +402,7 @@ function smooth(seq, N) {
 
 	let npitched = 0;
 	let v = 0;
-	
+
 	for(let j=0; j<N; j++) {
 	    let j1 = Math.max(0, Math.min(j+i, seq.length-1));
 	    var v1 = seq[j1];
@@ -453,7 +453,7 @@ function get_distribution(seq, name) {
     if(seq.length==0) {
 	return {}
     }
-    
+
     // Ignore outliers
     seq = seq.slice(Math.floor(seq.length*0.09),
 		    Math.floor(seq.length*0.91));
@@ -461,7 +461,7 @@ function get_distribution(seq, name) {
     let out = {};
     out[name + 'mean'] = seq.reduce((acc,x)=>acc+x,0) / seq.length;
     out[name + 'percentile_9'] = seq[0];
-    out[name + 'percentile_91'] = seq[seq.length-1];    
+    out[name + 'percentile_91'] = seq[seq.length-1];
     out[name + 'range'] = seq[seq.length-1] - seq[0];
 
     return out;
@@ -496,7 +496,7 @@ function pitch_stats(seq) {
     }
 
     let pitch_distr = get_distribution(pitched, 'pitch_');
-    
+
     let acceled=acceleration.filter((p) => Math.abs(p)>0.1);
     let accel_distr = get_distribution(acceled, 'accel_');
     accel_distr['accel_norm'] = acceled.reduce((acc,x)=>acc+Math.abs(x),0) / acceled.length; // XXX: percentiles...
@@ -524,7 +524,7 @@ function render_pitch(root, id, seq, attrs) {
 		started=false;
 	    }
 	});
-    
+
     root.path({
 	id: id,
 	attrs: Object.assign({
@@ -555,11 +555,11 @@ function render_whiskers(root, id, stats, x1, x2) {
 	    x1: x1,
 	    x2: x2,
 	    y1: pitch2y(stats.pitch_mean),
-	    y2: pitch2y(stats.pitch_mean),	    
+	    y2: pitch2y(stats.pitch_mean),
 	    stroke: 'rgba(255,0,0,0.4)',
 	    fill: 'none'
 	}
-    });    
+    });
 }
 
 function get_stat_keys(pstats) {
@@ -618,7 +618,7 @@ function render_overview(root) {
 		    let pitch_mean = (pitch_stats(wd_pitch) || {})['pitch_mean'];
 		    if(pitch_mean) {
 
-		    let y = ((pitch_mean - 50) / 400) * height;
+		    let y = height - ((pitch_mean - 50) / 400) * height;
 
 		    svg.rect({id: 'word-' + seg_idx + '-' + wd_idx,
 			      attrs: {
@@ -650,7 +650,7 @@ function render_segs_ss(root, head) {
 
     let cur_y = 0;
     const stat_keys = get_stat_keys(pstats);
-    
+
     stat_keys
 	.forEach((key, col_idx) => {
 	    // Header
@@ -665,7 +665,7 @@ function render_segs_ss(root, head) {
 		       }})
 	    // global
 	    let fval = Math.round(100 * pstats[key]) / 100;
-	    
+
 	    sheet.div({id: 'gv-' + key,
 		       text: '' + fval,
 		       classes: ['cell', 'global'],
@@ -674,7 +674,7 @@ function render_segs_ss(root, head) {
 			   top: 20,
 			   width: 150,
 			   height: 20
-		       }})	    
+		       }})
 	})
     cur_y += 40;
 
@@ -707,7 +707,7 @@ function render_segs_ss(root, head) {
 		.forEach((key, col_idx) => {
 		    let fval = Math.round(100 * sstats[key]) / 100;
 		    if(isNaN(fval)) { fval = '' }
-	    
+
 		    sheet.div({id: 'sv-' + seg_idx + '-' + key,
 			       text: '' + fval,
 			       classes: ['cell'],
@@ -716,7 +716,7 @@ function render_segs_ss(root, head) {
 				   top: cur_y,
 				   width: 150,
 				   height: 20
-			       }})	    
+			       }})
 		});
 	    cur_y += 20;
 
@@ -877,19 +877,20 @@ function render_seg(root, seg, seg_idx) {
 	let wd_stats = pitch_stats(get_cur_pitch().slice(Math.round(wd.start*100),
 						     Math.round(wd.end*100)));
 
-	if(wd_stats) {
-	    render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
-			    wd_stats,
-			    t2x(wd.start - seg.start),
-			    t2x(wd.end - seg.start))
-	}
+	// if(wd_stats) {
+	//     render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
+	// 		    wd_stats,
+	// 		    t2x(wd.start - seg.start),
+	// 		    t2x(wd.end - seg.start))
+	// }
 
 	svg.text({id: 'txt-' + seg_idx + '-' + wd_idx,
 		  text: wd.word,
 		  attrs: {
 		      class: wd.type=='unaligned' ? 'unaligned' : 'word',
 		      x: t2x(wd.start - seg.start),
-		      y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
+		      //y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
+		      y: pitch2y((wd_stats&&wd_stats.pitch_percentile_91) || seq_stats.pitch_mean) - 2,
 		      fill: '#3B5161',
 		  }
 		 })
@@ -1011,7 +1012,7 @@ function blit_graph_can() {
         ctx.fillStyle = "#CFD8DC";
         ctx.fillRect(0, y_px, w, 1);
 
-        ctx.fillStyle = "#90A4AE";        
+        ctx.fillStyle = "#90A4AE";
         ctx.fillText("" + yval + "Hz", 0, y_px-1);
     });
 
@@ -1020,16 +1021,16 @@ function blit_graph_can() {
     for(var t=Math.ceil(start); t<Math.ceil(end); t++) {
 
         var x_px = w * ((t-start) / (end-start));
-        
+
         ctx.fillStyle = "#CFD8DC";
         ctx.fillRect(x_px, 0, 1, graph_end_y);
 
-        ctx.fillStyle = "#90A4AE";        
+        ctx.fillStyle = "#90A4AE";
         ctx.fillText("" + t + "s", x_px-5, graph_end_y+10);
     }
 
     var wd_start_y = pitch2y(75, h);
-    
+
     // Draw in-view words, in-time
     if(get_cur_align()) {
         get_cur_align().segments.forEach((seg) => {
@@ -1053,7 +1054,7 @@ function blit_graph_can() {
                     var ph_w = w * (ph.duration / (end-start));
 
                     ctx.fillRect(x, wd_start_y+5, ph_w, 2);
-                    
+
                     x += ph_w;
 		});
 	    });
@@ -1071,7 +1072,7 @@ function render_waveform(ctx, w, rect, p_h) {
     if(!w.end || !get_cur_pitch()) {
         return;
     }
-    
+
     // // Draw waveform
     var st_idx = Math.floor(w.start * 100);
     var end_idx = Math.ceil(w.end * 100);
@@ -1090,7 +1091,7 @@ function render_waveform(ctx, w, rect, p_h) {
     //     ctx.lineTo(x + (i-st_idx)*step, y + y_off + 30 + data.rms[i]*30);
     // }
     // ctx.fill();
-    
+
     // ctx.beginPath();
     // Draw pitch trace
     ctx.strokeStyle = "#449A88";
@@ -1150,7 +1151,7 @@ function pitch2y(p, p_h) {
 window.onhashchange = () => {
     var docid = window.location.hash.slice(1);
     console.log("hash", docid, window);
-    
+
     if(docid in T.docs) {
 	T.SHOW_SEGS={};
         T.cur_doc = docid;

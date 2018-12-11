@@ -1,10 +1,12 @@
 'use strict'
 
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import * as path from 'path'
 import { format as formatUrl } from 'url'
 
 const { spawn } = require('child_process');
+
+const fs = require('fs');
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -85,3 +87,27 @@ if(!isDevelopment) {
 app.on('ready', () => {
   mainWindow = createMainWindow()
 })
+
+
+ipcMain.on('test', (event, arg) => {
+    // PDF (?)
+    mainWindow.webContents.printToPDF(
+	{marginsType: 1,
+	 pageSize: 'Letter',
+	 landscape: true}, (err, data) => {
+	     fs.writeFile('foo.pdf', data);
+	     console.log('written!');
+    });
+
+    return
+    // PNG
+    mainWindow.webContents.capturePage(
+	{x: 0,
+	 y: 0,
+	 width: 800,
+	 height: 600}, (image) => {
+	     let jpg = image.toPNG();
+	     fs.writeFile('foo.png', jpg);
+	     console.log('captured!');
+    });
+});

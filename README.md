@@ -1,3 +1,41 @@
+Sample transcripts
+
+
+Moderator: I'd like to introduce to you tonight Marit MacArthur, who will be ...
+
+Marit: This is my poem.
+
+Marit: It begins/
+  Poem continues /
+  Stanza ends.
+
+Marit: Stanza: start /
+  And on /
+  And on.
+
+Moderator: Are there any questions?
+
+Q1: Blah...
+
+
+
+
+TODO(rmo): Documentation on speaker diarization input
+
+
+
+# LZ Complexity
+
+```sh
+git clone https://GitHub.com/Naereen/Lempel-Ziv_Complexity
+cd Lempel-Ziv_Complexity/src/
+make build2
+make test     # should pass
+sudo make install2  # mv the build/lib*/*.so files where you need them
+```
+
+
+
 # electron-webpack-quick-start
 > A bare minimum project structure to get started developing with [`electron-webpack`](https://github.com/electron-userland/electron-webpack).
 
