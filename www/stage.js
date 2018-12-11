@@ -568,6 +568,73 @@ function get_stat_keys(pstats) {
 	.sort();
 }
 
+function render_overview(root) {
+    if(!render_is_ready(root)) {
+	return
+    }
+
+    let overview = root.div({id: 'oview', unordered: true});
+
+    let width = document.body.clientWidth;
+    let height = 50;
+
+    let svg = root.svg({
+	id: 'svg-overview',
+	attrs: {
+	    width: width,
+	    height: height
+	}
+    });
+
+    let align = get_cur_align();
+    let duration = align.segments[align.segments.length-1].end;
+
+    console.log("Duration", duration);
+
+    align.segments
+	.forEach((seg, seg_idx) => {
+	    seg.wdlist.forEach((wd,wd_idx) => {
+		if(!wd.end) { return }
+
+		if(wd.type == 'gap'){
+		    svg.rect({id: 'gap-' + seg_idx + '-' + wd_idx,
+			      attrs: {
+				  x: width * (wd.start/duration),
+				  y: 0,
+				  width: width * (wd.end-wd.start) / duration,
+				  height: height,
+				  fill: 'rgba(0,0,0,0.1)'
+			      }})
+		}
+		else {
+		    // Word
+
+		    // Compute word-pitch
+		    let wd_pitch = get_cur_pitch()
+			.slice(Math.floor(wd.start * 100), Math.floor(wd.end * 100));
+
+		    console.log('wd_pitch', wd_pitch);
+
+		    let pitch_mean = (pitch_stats(wd_pitch) || {})['pitch_mean'];
+		    if(pitch_mean) {
+
+		    let y = ((pitch_mean - 50) / 400) * height;
+
+		    svg.rect({id: 'word-' + seg_idx + '-' + wd_idx,
+			      attrs: {
+				  x: width * (wd.start/duration),
+				  y: y,
+				  width: width * (wd.end-wd.start) / duration,
+				  height: 3,
+				  fill: 'rgba(0,0,200,0.8)'
+			      }})
+		    }
+		}
+	    })
+	});
+}
+
+
 
 function render_segs_ss(root, head) {
     if(!render_is_ready(root)) {
@@ -726,8 +793,8 @@ function render_seg(root, seg, seg_idx) {
 	get_cur_pitch().slice(Math.round(seg.start*100),
 			  Math.round(seg.end*100)));
 
-    render_whiskers(svg, 'segwhisk-' + seg_idx,
-		    seq_stats, T.LPAD, seg_w);
+    // render_whiskers(svg, 'segwhisk-' + seg_idx,
+    // 		    seq_stats, T.LPAD, seg_w);
 
 
     render_pitch(
@@ -750,24 +817,24 @@ function render_seg(root, seg, seg_idx) {
     );
 
     // Draw acceleration
-    seq_stats.acceleration
-	.forEach((a, a_idx) => {
-	    if(Math.abs(a) > 0.05) {
+    // seq_stats.acceleration
+    // 	.forEach((a, a_idx) => {
+    // 	    if(Math.abs(a) > 0.05) {
 
-		let h = (a/T.MAX_A) * T.PITCH_H;
-		let cy = pitch2y(seq_stats.smoothed[a_idx]);
-		
-		svg.line({id: 'a-' + a_idx,
-			  attrs: {
-			      x1: fr2x(a_idx),
-			      y1: cy,
-			      x2: fr2x(a_idx),
-			      y2: cy - h,
-			      stroke: '#FFBA08'
-			  }});
-			 
-	    }
-	});
+    // 		let h = (a/T.MAX_A) * T.PITCH_H;
+    // 		let cy = pitch2y(seq_stats.smoothed[a_idx]);
+
+    // 		svg.line({id: 'a-' + a_idx,
+    // 			  attrs: {
+    // 			      x1: fr2x(a_idx),
+    // 			      y1: cy,
+    // 			      x2: fr2x(a_idx),
+    // 			      y2: cy - h,
+    // 			      stroke: '#FFBA08'
+    // 			  }});
+
+    // 	    }
+    // 	});
 
     // Draw amplitude
     get_cur_rms()
@@ -777,7 +844,7 @@ function render_seg(root, seg, seg_idx) {
 
 	    let h = r * T.PITCH_H/5;
 	    let cy = 9.25/10 * T.PITCH_H;
-	    
+
 	    svg.line({id: 'rms-' + seg_idx + '-' + r_idx,
 		      attrs: {
 			  x1: fr2x(r_idx),
@@ -803,7 +870,7 @@ function render_seg(root, seg, seg_idx) {
 			  height: T.PITCH_H,
 			  fill: 'rgba(0,0,0,0.05)'
 		      }})
-	    
+
 	    return
 	}
 
@@ -816,7 +883,7 @@ function render_seg(root, seg, seg_idx) {
 			    t2x(wd.start - seg.start),
 			    t2x(wd.end - seg.start))
 	}
-	
+
 	svg.text({id: 'txt-' + seg_idx + '-' + wd_idx,
 		  text: wd.word,
 		  attrs: {
@@ -848,6 +915,9 @@ function render() {
     let head = render_header(root);
 
     if(T.cur_doc) {
+
+	render_overview(root);
+
         //render_doc(root, head);
 	//render_segs(root, head);
 	render_segs_ss(root);
@@ -856,7 +926,7 @@ function render() {
         render_uploader(root);
         render_doclist(root);
     }
-    
+
     root.show();
 
     if(T.cur_doc) {
@@ -867,20 +937,20 @@ function render() {
             blit_graph_can();
         }
     }
-    
+
 }
 
     function blit_wd_can() {
 	return;
-	
+
     var $can = T.wd_can.$el;
 
     // Compute word positions
     T.wd_pos = {};
-    
+
     var wd_right_max = 0;
     var wd_top_max = 0;
-    
+
     Object.keys(T.wd_els)
         .forEach((wd_idx) => {
             var pos = {
@@ -888,7 +958,7 @@ function render() {
                 width: T.wd_els[wd_idx].$el.offsetWidth,
                 top: T.wd_els[wd_idx].$el.offsetTop
             };
-            
+
             T.wd_pos[wd_idx] = pos;
 
             wd_right_max = Math.max(pos.left+pos.width, wd_right_max);
