@@ -613,7 +613,7 @@ function render_overview(root) {
 		    let wd_pitch = get_cur_pitch()
 			.slice(Math.floor(wd.start * 100), Math.floor(wd.end * 100));
 
-		    console.log('wd_pitch', wd_pitch);
+		    // console.log('wd_pitch', wd_pitch);
 
 		    let pitch_mean = (pitch_stats(wd_pitch) || {})['pitch_mean'];
 		    if(pitch_mean) {
@@ -786,8 +786,31 @@ function render_seg(root, seg, seg_idx) {
 		      class: 'axis',
 		      fill: '#3B5161'
 		  }})
-
     });
+
+    // ...and x-axis
+    console.log('seg', seg);
+    for(let x=Math.ceil(seg.start); x<=Math.floor(seg.end); x++) {
+        var x_px = t2x(x-seg.start);
+	// console.log('x', x, x_px);
+
+	svg.line({id: 'seg-' + seg_idx + '-xaxis-' + x,
+		  attrs: {
+		      x1: x_px,
+		      y1: 0,
+		      x2: x_px,
+		      y2: T.PITCH_H,
+		      stroke: '#C4D5D9'
+		  }})
+	svg.text({id: 'seg-' + seg_idx + '-xaxistxt-' + x,
+		  text: '' + x + 's',
+		  attrs: {
+		      x: x_px + 2,
+		      y: T.PITCH_H - 2,
+		      class: 'axis',
+		      fill: '#3B5161'
+		  }})
+    }
 
     let seq_stats = pitch_stats(
 	get_cur_pitch().slice(Math.round(seg.start*100),
