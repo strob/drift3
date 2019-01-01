@@ -63,7 +63,7 @@ function get_data(docid) {
 
 
 T.XSCALE = 300;
-T.PITCH_H= 500;
+T.PITCH_H= 250;
 T.LPAD = 50;
 T.MAX_A= 15;
 
@@ -750,7 +750,7 @@ function render_seg(root, seg, seg_idx) {
 	id: 'svg-' + seg_idx,
 	attrs: {
 	    width: seg_w,
-	    height: 500
+	    height: T.PITCH_H
 	},
 	events: {
 	    onclick: () => {
@@ -1145,7 +1145,15 @@ function pitch2y(p, p_h) {
     if(p == 0) {
         return p;
     }
-    return T.PITCH_H - p;
+
+    // -- Linear
+    //return T.PITCH_H - p;
+
+    // -- Logscale
+    // This is the piano number formula
+    // (https://en.wikipedia.org/wiki/Piano_key_frequencies)
+    // n = 12 log2(f/440hz) + 49
+    return (-50 * Math.log2(p / 440));
 }
 
 window.onhashchange = () => {
