@@ -74,7 +74,12 @@ if(!T.docs) {
 if(!T.active) {
     T.active = {};
 }
-
+if(!T.razors) {
+    T.razors = {};
+}
+if(!T.selections) {
+   T.selections = {};
+}
 function reload_docs() {
     T.LAST_T = T.LAST_T || 0;
     let firsttime = !T.LAST_T;
@@ -349,7 +354,11 @@ function render_doclist(root) {
 		    classes: ['detail']
 		});
 
-		render_detail(det_div, doc, 0, 20);
+		if(!(doc.id in T.selections)) {
+		    T.selections[doc.id] = {start_time: 0, end_time: 20};
+		}
+
+		render_detail(det_div, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
 
 	    }
 
@@ -595,7 +604,7 @@ function render_detail(root, doc, start_time, end_time) {
     });
 
     // Draw axes
-    var y_axes = [50, 100, 150, 200, 250, 300, 350, 400];
+    var y_axes = [50, 100, 150, 200, 250, 300, 350, 400, 450];
     y_axes.forEach((yval) => {
         var y_px = pitch2y(yval);
 
@@ -718,6 +727,20 @@ function render_detail(root, doc, start_time, end_time) {
 		     })
 	});
     });
+
+
+    if(T.razors[doc.id]) {
+	svg.rect({id: doc.id + '-d-razor',
+		  attrs: {
+		      x: t2x(T.razors[doc.id] - start_time),
+		      y: 0,
+		      width: 2,
+		      height: T.PITCH_H,
+		      fill: 'red'
+		  }
+		 });
+    }
+
 }
 
 function render_overview(root, doc) {
@@ -730,16 +753,57 @@ function render_overview(root, doc) {
     let width = document.body.clientWidth;
     let height = 50;
 
+    let align = get_cur_align(doc.id);
+    let duration = align.segments[align.segments.length-1].end;
+
     let svg = root.svg({
 	id: doc.id + '-svg-overview',
 	attrs: {
 	    width: width,
 	    height: height
+	},
+	events: {
+	    onmousedown: (ev) => {
+		ev.preventDefault();
+
+		// Compute time for razor (XXX: make selection?)
+		let t1 = (ev.clientX / width) * duration;
+		let t2 = t1;
+
+		window.onmousemove = (ev) => {
+		    t2 = (ev.clientX / width) * duration;
+
+		    if(Math.abs(t2 - t1) > 0.2) {
+
+			T.selections[doc.id] = {
+			    start_time: Math.min(t1, t2),
+			    end_time: Math.max(t1, t2)
+			};
+
+			render();
+		    }
+		    else {
+			// if(doc.id in T.selections) {
+			//     delete T.selections[doc.id];
+			//     render();
+			// }
+		    }
+
+		}
+		window.onmouseup = (ev) => {
+
+		    if(Math.abs(t2 - t1) < 0.2) {
+			// TODO: Seek audio
+			T.razors[doc.id] = t2;
+			render();
+		    }
+
+		    window.onmousemove = null;
+		    window.onmouseup = null;
+		};
+	    }
 	}
     });
-
-    let align = get_cur_align(doc.id);
-    let duration = align.segments[align.segments.length-1].end;
 
     align.segments
 	.forEach((seg, seg_idx) => {
@@ -770,7 +834,7 @@ function render_overview(root, doc) {
 
 			let y = pitch2y(pitch_mean)/5;//height - ((pitch_mean - 50) / 400) * height;
 
-			svg.rect({id: 'word-' + seg_idx + '-' + wd_idx,
+			svg.rect({id: doc.id + '-word-' + seg_idx + '-' + wd_idx,
 				  attrs: {
 				      x: width * (wd.start/duration),
 				      y: y,
@@ -782,6 +846,35 @@ function render_overview(root, doc) {
 		}
 	    })
 	});
+
+
+    if(T.razors[doc.id]) {
+	svg.rect({id: doc.id + '-o-razor',
+		  attrs: {
+		      x: width * (T.razors[doc.id] / duration),
+		      y: 0,
+		      width: 2,
+		      height: height,
+		      fill: 'red'
+		  }
+		 });
+    }
+    if(T.selections[doc.id]) {
+	let sel = T.selections[doc.id];
+
+	svg.rect({id: doc.id + '-o-selection',
+		  attrs: {
+		      x: width * (sel.start_time / duration),
+		      y: 0,
+		      width: width * ((sel.end_time - sel.start_time) / duration),
+		      height: height,
+		      stroke: 'black',
+		      'stroke-width': 2,
+		      fill: 'none'
+		  }
+		 });
+
+    }
 }
 
 function render_is_ready(root) {
