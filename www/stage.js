@@ -84,13 +84,7 @@ function reload_docs() {
             T.docs[doc.id] = doc;
 	    T.LAST_T = Math.max(T.LAST_T, doc.modified_time);
 	});
-	// if(firsttime) {
-        //     window.onhashchange();
-	// }
-	// if(ret.length > 0) {
-        //     window.onhashchange(); // !!!
-            render();
-	// }
+        render();
 
 	window.setTimeout(reload_docs, 3000);
     });
@@ -344,7 +338,7 @@ function render_doclist(root) {
 		// Expand.
 
 		render_overview(docitem, doc);
-		render_detail(docitem, doc);
+		render_detail(docitem, doc, 0, 20);
 
 	    }
 
@@ -570,47 +564,16 @@ function render_pitch(root, id, seq, attrs) {
 
 }
 
-
-function render_whiskers(root, id, stats, x1, x2) {
-    root.rect({
-	id: id + '-rect',
-	attrs: {
-	    x: x1,
-	    y: Math.min(pitch2y(stats.pitch_percentile_9), pitch2y(stats.pitch_percentile_91)),
-	    width: (x2-x1),
-	    height: Math.abs(pitch2y(stats.pitch_percentile_9) - pitch2y(stats.pitch_percentile_91)),
-	    stroke: 'rgba(0,0,0,0.5)',
-	    fill: 'none'
-	}
-    });
-    root.line({
-	id: id + '-pitch_mean',
-	attrs: {
-	    x1: x1,
-	    x2: x2,
-	    y1: pitch2y(stats.pitch_mean),
-	    y2: pitch2y(stats.pitch_mean),
-	    stroke: 'rgba(255,0,0,0.4)',
-	    fill: 'none'
-	}
-    });
-}
-
-function get_stat_keys(pstats) {
-    return Object.keys(pstats)
-	.filter((x) => typeof(pstats[x]) != 'object' && x != 'seg')
-	.sort();
-}
-
-function render_detail(root, doc) {
+function render_detail(root, doc, start_time, end_time) {
     if(!render_is_ready(root)) {
 	return
     }
 
     let segs = get_cur_align(doc.id).segments;
-    let duration = segs[segs.length-1].end;
+    end_time = Math.min(end_time, segs[segs.length-1].end);
+    let duration = end_time - start_time;
 
-    const seg_w = t2x(duration - segs[0].start);
+    const seg_w = t2x(duration);
 
     let svg = root.svg({
 	id: doc.id + '-svg-',
@@ -644,9 +607,8 @@ function render_detail(root, doc) {
     });
 
     // ...and x-axis
-    for(let x=0; x<duration; x++) {
-        var x_px = t2x(x);//-seg.start);
-	// console.log('x', x, x_px);
+    for(let x=Math.ceil(start_time); x<end_time; x++) {
+        var x_px = t2x(x - start_time);
 
 	svg.line({id: doc.id + '-seg-' + '-xaxis-' + x,
 		  attrs: {
@@ -667,13 +629,13 @@ function render_detail(root, doc) {
     }
 
     let seq_stats = pitch_stats(
-	get_cur_pitch(doc.id));//.slice(Math.round(seg.start*100),
-	//Math.round(seg.end*100)));
+	get_cur_pitch(doc.id).slice(Math.round(start_time*100),
+				    Math.round(end_time*100)));
 
     render_pitch(
 	svg, doc.id + '-spath-',
-	get_cur_pitch(doc.id),//.slice(Math.round(seg.start*100),
-	//Math.round(seg.end*100)),
+	get_cur_pitch(doc.id).slice(Math.round(start_time*100),
+				    Math.round(end_time)),
 	{
 	    stroke: '#CCBDED',
 	    'stroke-width': 1,
@@ -691,6 +653,8 @@ function render_detail(root, doc) {
 
     // Draw amplitude
     get_cur_rms(doc.id)
+	.slice(Math.round(start_time*100),
+	       Math.round(end_time*100))
 	.forEach((r, r_idx) => {
 
 	    let h = r * T.PITCH_H/5;
@@ -713,10 +677,12 @@ function render_detail(root, doc) {
 
 	    if(!wd.end) { return }
 
+	    if(wd.start >= end_time || wd.end <= start_time) { return; }
+
 	    if(wd.type == 'gap'){
 		svg.rect({id: doc.id + '-gap-' + seg_idx + '-' + wd_idx,
 			  attrs: {
-			      x: t2x(wd.start),
+			      x: t2x(wd.start - start_time),
 			      y: 0,
 			      width: t2w(wd.end - wd.start),
 			      height: T.PITCH_H,
@@ -729,16 +695,16 @@ function render_detail(root, doc) {
 	    let wd_stats = pitch_stats(get_cur_pitch(doc.id).slice(Math.round(wd.start*100),
 								   Math.round(wd.end*100)));
 
-	svg.text({id: doc.id + '-txt-' + seg_idx + '-' + wd_idx,
-		  text: wd.word,
-		  attrs: {
-		      class: wd.type=='unaligned' ? 'unaligned' : 'word',
-		      x: t2x(wd.start),
-		      //y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
-		      y: pitch2y((wd_stats&&wd_stats.pitch_percentile_91) || seq_stats.pitch_mean) - 2,
-		      fill: '#3B5161',
-		  }
-		 })
+	    svg.text({id: doc.id + '-txt-' + seg_idx + '-' + wd_idx,
+		      text: wd.word,
+		      attrs: {
+			  class: wd.type=='unaligned' ? 'unaligned' : 'word',
+			  x: t2x(wd.start - start_time),
+			  //y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
+			  y: pitch2y((wd_stats&&wd_stats.pitch_percentile_91) || seq_stats.pitch_mean) - 2,
+			  fill: '#3B5161',
+		      }
+		     })
 	});
     });
 }
@@ -763,8 +729,6 @@ function render_overview(root, doc) {
 
     let align = get_cur_align(doc.id);
     let duration = align.segments[align.segments.length-1].end;
-
-    console.log("Duration", duration);
 
     align.segments
 	.forEach((seg, seg_idx) => {
@@ -809,292 +773,6 @@ function render_overview(root, doc) {
 	});
 }
 
-
-
-function render_segs_ss(root, doc) {
-    if(!render_is_ready(root)) {
-	return
-    }
-
-    let sheet = root.div({id: doc.id + '-ss', unordered: true});
-
-    // Global data.
-    let pstats = pitch_stats(get_cur_pitch(doc.id));
-
-    Object.assign(pstats, time_stats(get_cur_align(doc.id).segments.reduce((acc,x) => acc.concat(x.wdlist), [])));
-
-    let cur_y = 0;
-    const stat_keys = get_stat_keys(pstats);
-
-    stat_keys
-	.forEach((key, col_idx) => {
-	    // Header
-	    sheet.div({id: doc.id + '-h-' + key,
-		       text: key,
-		       classes: ['header', 'cell'],
-		       styles: {
-			   left: col_idx*150,
-			   top: 0,
-			   width: 150,
-			   height: 20
-		       }})
-	    // global
-	    let fval = Math.round(100 * pstats[key]) / 100;
-
-	    sheet.div({id: doc.id + '-gv-' + key,
-		       text: '' + fval,
-		       classes: ['cell', 'global'],
-		       styles: {
-			   left: col_idx*150,
-			   top: 20,
-			   width: 150,
-			   height: 20
-		       }})
-	})
-    cur_y += 40;
-
-    // Dump segs
-    get_cur_align().segments
-	.forEach((seg, seg_idx) => {
-
-	    sheet.div({
-		id: 'segtxt-' + seg_idx,
-		text: seg.wdlist.filter((x) => x.type != 'gap').map((x) => x.word).join(''),
-		classes: ['cell', 'txt'],
-		styles: {
-		    top: cur_y+10
-		},
-		events: {
-		    onclick: (ev) => {
-			T.SHOW_SEGS = T.SHOW_SEGS||{};
-			T.SHOW_SEGS[seg_idx] = !T.SHOW_SEGS[seg_idx];
-			render();
-		    }
-		}
-	    })
-	    cur_y += 30;
-
-	    let sstats = pitch_stats(get_cur_pitch().slice(Math.round(seg.start*100), Math.round(seg.end*100)));
-
-	    Object.assign(sstats, time_stats(seg.wdlist));
-
-	    stat_keys
-		.forEach((key, col_idx) => {
-		    let fval = Math.round(100 * sstats[key]) / 100;
-		    if(isNaN(fval)) { fval = '' }
-
-		    sheet.div({id: 'sv-' + seg_idx + '-' + key,
-			       text: '' + fval,
-			       classes: ['cell'],
-			       styles: {
-				   left: col_idx*150,
-				   top: cur_y,
-				   width: 150,
-				   height: 20
-			       }})
-		});
-	    cur_y += 20;
-
-	    if((T.SHOW_SEGS||{})[seg_idx]) {
-		render_seg(sheet.div({id: 'seg-view-' + seg_idx,
-				      classes: ['cell'],
-				      styles: {
-					  top: cur_y
-				      }}),
-			   seg, seg_idx);
-		cur_y += T.PITCH_H;
-	    }
-
-	});
-}
-
-function render_segs(root, head) {
-    if(!render_is_ready(root)) {
-	return
-    }
-    get_cur_align().segments.forEach((seg, seg_idx) => {
-	render_seg(root, seg, seg_idx);
-    })
-
-}
-
-function render_seg(root, seg, seg_idx) {
-    const seg_w = t2x(seg.end - seg.start);
-
-    let svg = root.svg({
-	id: 'svg-' + seg_idx,
-	attrs: {
-	    width: seg_w,
-	    height: T.PITCH_H
-	},
-	events: {
-	    onclick: () => {
-		window.a = new Audio('/media/' + T.docs[T.cur_doc].path);//
-		window.setTimeout(() => {
-		    window.a.currentTime = seg.start-1;
-		    window.a.play();
-		}, 200)
-		//    + '#t=' + seg.start + ',' + (seg.end-seg.start));
-		//a.play()
-	    }
-	}
-    });
-
-    // Draw axes
-    var y_axes = [50, 100, 150, 200, 250, 300, 350, 400];
-    y_axes.forEach((yval) => {
-        var y_px = pitch2y(yval);
-
-	svg.line({id: 'seg-' + seg_idx + '-axis-' + yval,
-		  attrs: {
-		      x1: 0,
-		      y1: y_px,
-		      x2: seg_w,
-		      y2: y_px,
-		      stroke: '#C4D5D9'
-		  }})
-	svg.text({id: 'seg-' + seg_idx + '-axistxt-' + yval,
-		  text: '' + yval + 'Hz',
-		  attrs: {
-		      x: 0,
-		      y: y_px,
-		      class: 'axis',
-		      fill: '#3B5161'
-		  }})
-    });
-
-    // ...and x-axis
-    console.log('seg', seg);
-    for(let x=Math.ceil(seg.start); x<=Math.floor(seg.end); x++) {
-        var x_px = t2x(x-seg.start);
-	// console.log('x', x, x_px);
-
-	svg.line({id: 'seg-' + seg_idx + '-xaxis-' + x,
-		  attrs: {
-		      x1: x_px,
-		      y1: 0,
-		      x2: x_px,
-		      y2: T.PITCH_H,
-		      stroke: '#C4D5D9'
-		  }})
-	svg.text({id: 'seg-' + seg_idx + '-xaxistxt-' + x,
-		  text: '' + x + 's',
-		  attrs: {
-		      x: x_px + 2,
-		      y: T.PITCH_H - 2,
-		      class: 'axis',
-		      fill: '#3B5161'
-		  }})
-    }
-
-    let seq_stats = pitch_stats(
-	get_cur_pitch().slice(Math.round(seg.start*100),
-			  Math.round(seg.end*100)));
-
-    // render_whiskers(svg, 'segwhisk-' + seg_idx,
-    // 		    seq_stats, T.LPAD, seg_w);
-
-
-    render_pitch(
-	svg, 'spath-' + seg_idx,
-	get_cur_pitch().slice(Math.round(seg.start*100),
-			  Math.round(seg.end*100)),
-	{
-	    stroke: '#CCBDED',
-	    'stroke-width': 1,
-	}
-    );
-
-    render_pitch(
-	svg, 'sspath-' + seg_idx,
-	seq_stats.smoothed,
-	{
-	    stroke: '#8D78B9',
-	    'stroke-width': 3,
-	}
-    );
-
-    // Draw acceleration
-    // seq_stats.acceleration
-    // 	.forEach((a, a_idx) => {
-    // 	    if(Math.abs(a) > 0.05) {
-
-    // 		let h = (a/T.MAX_A) * T.PITCH_H;
-    // 		let cy = pitch2y(seq_stats.smoothed[a_idx]);
-
-    // 		svg.line({id: 'a-' + a_idx,
-    // 			  attrs: {
-    // 			      x1: fr2x(a_idx),
-    // 			      y1: cy,
-    // 			      x2: fr2x(a_idx),
-    // 			      y2: cy - h,
-    // 			      stroke: '#FFBA08'
-    // 			  }});
-
-    // 	    }
-    // 	});
-
-    // Draw amplitude
-    get_cur_rms()
-	.slice(Math.round(seg.start*100),
-	       Math.round(seg.end*100))
-	.forEach((r, r_idx) => {
-
-	    let h = r * T.PITCH_H/5;
-	    let cy = 9.25/10 * T.PITCH_H;
-
-	    svg.line({id: 'rms-' + seg_idx + '-' + r_idx,
-		      attrs: {
-			  x1: fr2x(r_idx),
-			  y1: cy - (h/2),
-			  x2: fr2x(r_idx),
-			  y2: cy + (h/2),
-			  stroke: 'black',
-			  'stroke-width': 2,
-		      }})
-	});
-
-    // Draw each word
-    seg.wdlist.forEach((wd,wd_idx) => {
-
-	if(!wd.end) { return }
-
-	if(wd.type == 'gap'){
-	    svg.rect({id: 'gap-' + seg_idx + '-' + wd_idx,
-		      attrs: {
-			  x: t2x(wd.start-seg.start),
-			  y: 0,
-			  width: t2w(wd.end-wd.start),
-			  height: T.PITCH_H,
-			  fill: 'rgba(0,0,0,0.05)'
-		      }})
-
-	    return
-	}
-
-	let wd_stats = pitch_stats(get_cur_pitch().slice(Math.round(wd.start*100),
-						     Math.round(wd.end*100)));
-
-	// if(wd_stats) {
-	//     render_whiskers(svg, 'wdwhisk-' + seg_idx + '-' + wd_idx,
-	// 		    wd_stats,
-	// 		    t2x(wd.start - seg.start),
-	// 		    t2x(wd.end - seg.start))
-	// }
-
-	svg.text({id: 'txt-' + seg_idx + '-' + wd_idx,
-		  text: wd.word,
-		  attrs: {
-		      class: wd.type=='unaligned' ? 'unaligned' : 'word',
-		      x: t2x(wd.start - seg.start),
-		      //y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
-		      y: pitch2y((wd_stats&&wd_stats.pitch_percentile_91) || seq_stats.pitch_mean) - 2,
-		      fill: '#3B5161',
-		  }
-		 })
-    });
-}
-
 function render_is_ready(root) {
     if(!T.docs[T.cur_doc]) {
         new PAL.Element("div", {
@@ -1113,17 +791,8 @@ function render() {
 
     let head = render_header(root);
 
-    // if(T.cur_doc) {
-    // 	render_overview(root);
-
-    //     //render_doc(root, head);
-    // 	//render_segs(root, head);
-    // 	render_segs_ss(root);
-    // }
-    // else {
-        render_uploader(root);
-        render_doclist(root);
-    // }
+    render_uploader(root);
+    render_doclist(root);
 
     root.show();
 }
@@ -1154,22 +823,5 @@ function pitch2y(p, p_h) {
     return (-50 * Math.log2(p / 440));
 }
 
-// window.onhashchange = () => {
-//     var docid = window.location.hash.slice(1);
-//     console.log("hash", docid, window);
-
-//     if(docid in T.docs) {
-// 	T.SHOW_SEGS={};
-//         T.cur_doc = docid;
-//     }
-//     else if(docid) {
-//         window.location.hash = "";
-//         return;
-//     }
-//     else {
-//         T.cur_doc = undefined;
-//     }
-//     render();
-// }
 
 render();
