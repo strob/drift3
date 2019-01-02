@@ -304,33 +304,38 @@ function render_doclist(root) {
 
 	    let docitem = root.div({id: doc.id,
 				    //text: doc.title,
-				    classes: ['driftitem', get_data(doc.id) ? (is_active ? 'active' : 'ready') : 'pending'],
-				    events: {
-					onclick: () => {
-					    if(get_data(doc.id)) {
-						T.active[doc.id] = !T.active[doc.id];
-						if(T.active[doc.id]) {
-						    T.cur_doc = doc.id;
-						    //window.location.hash = doc.id;
-						}
-						render();
-					    }
-					}
-				    }
+				    classes: ['driftitem', get_data(doc.id) ? (is_active ? 'active' : 'ready') : 'pending']
 				   });
 
+	    // Top bar
+	    let docbar = docitem.div({id: doc.id + "-bar",
+				      classes: ['docbar'],
+				      events: {
+					  onclick: () => {
+					      if(get_data(doc.id)) {
+						  T.active[doc.id] = !T.active[doc.id];
+						  if(T.active[doc.id]) {
+						      T.cur_doc = doc.id;
+						      //window.location.hash = doc.id;
+						  }
+						  render();
+					      }
+					  }
+				      }
+				     });
+
 	    // Expand
-	    docitem.span({id: doc.id + '-expand',
+	    docbar.span({id: doc.id + '-expand',
 			  classes: ['expand'],
 			  text: is_active ? "v " : "> "});
 
 	    // Title
-	    docitem.span({id: doc.id + '-name',
+	    docbar.span({id: doc.id + '-name',
 			  classes: ['name'],
 			  text: doc.title});
 
 	    // Hamburger
-	    docitem.div({id: doc.id + '-hamburger',
+	    docbar.div({id: doc.id + '-hamburger',
 			 text: ":",
 			 classes: ['hamburger']})
 
@@ -338,7 +343,13 @@ function render_doclist(root) {
 		// Expand.
 
 		render_overview(docitem, doc);
-		render_detail(docitem, doc, 0, 20);
+
+		let det_div = docitem.div({
+		    id: doc.id + '-detdiv',
+		    classes: ['detail']
+		});
+
+		render_detail(det_div, doc, 0, 20);
 
 	    }
 
@@ -701,7 +712,7 @@ function render_detail(root, doc, start_time, end_time) {
 			  class: wd.type=='unaligned' ? 'unaligned' : 'word',
 			  x: t2x(wd.start - start_time),
 			  //y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
-			  y: pitch2y((wd_stats&&wd_stats.pitch_percentile_91) || seq_stats.pitch_mean) - 2,
+			  y: Math.max(30, pitch2y((wd_stats&&wd_stats.pitch_percentile_91) || seq_stats.pitch_mean) - 2),
 			  fill: '#3B5161',
 		      }
 		     })
@@ -733,7 +744,7 @@ function render_overview(root, doc) {
     align.segments
 	.forEach((seg, seg_idx) => {
 	    seg.wdlist.forEach((wd,wd_idx) => {
-		if(!wd.end) { return }
+		if(!wd.end || !wd.start) { return }
 
 		if(wd.type == 'gap'){
 		    svg.rect({id: 'gap-' + seg_idx + '-' + wd_idx,
@@ -757,16 +768,16 @@ function render_overview(root, doc) {
 		    let pitch_mean = (pitch_stats(wd_pitch) || {})['pitch_mean'];
 		    if(pitch_mean) {
 
-		    let y = height - ((pitch_mean - 50) / 400) * height;
+			let y = pitch2y(pitch_mean)/5;//height - ((pitch_mean - 50) / 400) * height;
 
-		    svg.rect({id: 'word-' + seg_idx + '-' + wd_idx,
-			      attrs: {
-				  x: width * (wd.start/duration),
-				  y: y,
-				  width: width * (wd.end-wd.start) / duration,
-				  height: 3,
-				  fill: 'rgba(0,0,200,0.8)'
-			      }})
+			svg.rect({id: 'word-' + seg_idx + '-' + wd_idx,
+				  attrs: {
+				      x: width * (wd.start/duration),
+				      y: y,
+				      width: width * (wd.end-wd.start) / duration,
+				      height: 2,
+				      fill: 'rgba(0,0,200,0.3)'
+				  }})
 		    }
 		}
 	    })
@@ -820,7 +831,7 @@ function pitch2y(p, p_h) {
     // This is the piano number formula
     // (https://en.wikipedia.org/wiki/Piano_key_frequencies)
     // n = 12 log2(f/440hz) + 49
-    return (-50 * Math.log2(p / 440));
+    return (-60 * Math.log2(p / 440));
 }
 
 

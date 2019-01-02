@@ -35,7 +35,7 @@ body {
     transition-property: height;
     transition-duration: 0.2s;
 }
-.driftitem.ready {
+.docbar {
     cursor: pointer;
 }
 .driftitem.active {
@@ -44,9 +44,15 @@ body {
 .expand {
     font-family: mono, monospace;
 }
-.driftitem.ready:hover {
+.docbar:hover {
     color: blue;
 }
+
+.detail {
+    overflow-x: auto;
+    width: 100%;
+}
+
 .hamburger {
     position: absolute;
     right: 0;
