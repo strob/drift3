@@ -252,3 +252,22 @@ a {
 .cell.global {
     color: #000000;
 }
+
+
+#hamburger {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background-color: #ccc;
+    z-index: 100;
+}
+#hamburger div {
+    padding: 2px;
+    border-bottom: 1px solid black;
+    cursor: pointer;
+}
+#hamburger div:hover {
+    background-color: #eee;
+}

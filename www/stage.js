@@ -344,8 +344,31 @@ function render_doclist(root) {
 
 	    // Hamburger
 	    docbar.div({id: doc.id + '-hamburger',
-			 text: ":",
-			 classes: ['hamburger']})
+			text: ":",
+			events: {
+			    onclick: (ev) => {
+				console.log("hamclick");
+				ev.preventDefault();
+				ev.stopPropagation();
+
+				T.SHOW_HAMBURGER = {
+				    $el: ev.target,
+				    doc: doc
+				};
+				render();
+
+				window.onclick = (ev) => {
+				    // ev.preventDefault();
+				    // ev.stopPropagation();
+				    T.SHOW_HAMBURGER = null;
+				    render();
+
+				    window.onclick = null;
+				}
+
+			    }
+			},
+			classes: ['hamburger']})
 
 	    if(T.active[doc.id]) {
 		// Expand.
@@ -915,14 +938,38 @@ function render_is_ready(root) {
     return get_data(T.cur_doc);
 }
 
-function render() {
+function render_hamburger(root) {
+    let ham = root.div({id: 'hamburger',
+			styles: {
+			    top: T.SHOW_HAMBURGER.$el.parentElement.parentElement.offsetTop
+			},
+			//text: 'ham'
+		       });
 
+    ['csv', 'svg', 'delete'].forEach((name) => {
+	ham.div({
+	    id: 'ham-' + name,
+	    text: name,
+	    events: {
+		onclick: (ev) => {
+		    console.log("click", name);
+		}
+	    }
+	});
+    });
+}
+
+function render() {
     var root = new PAL.Root();
 
     let head = render_header(root);
 
     render_uploader(root);
     render_doclist(root);
+
+    if(T.SHOW_HAMBURGER) {
+	render_hamburger(root);
+    }
 
     root.show();
 }
