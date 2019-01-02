@@ -101,6 +101,12 @@ function get_docs() {
         .map((x) => Object.assign({}, T.docs[x], {id: x}))
         .sort((x,y) => x.date > y.date ? -1 : 1);
 }
+function set_active_doc(doc) {
+    if(doc.id !== T.cur_doc) {
+	T.cur_doc = doc.id;
+	T.audio = new Audio('/media/' + doc.path);
+    }
+}
 
 function render_header(root) {
     var head = root.div({
@@ -319,10 +325,7 @@ function render_doclist(root) {
 					  onclick: () => {
 					      if(get_data(doc.id)) {
 						  T.active[doc.id] = !T.active[doc.id];
-						  if(T.active[doc.id]) {
-						      T.cur_doc = doc.id;
-						      //window.location.hash = doc.id;
-						  }
+						  set_active_doc(doc);
 						  render();
 					      }
 					  }
@@ -608,6 +611,8 @@ function render_detail(root, doc, start_time, end_time) {
 		// Seek!
 		let t = start_time + x2t(ev.clientX + svg.$el.parentElement.scrollLeft);
 		T.razors[doc.id] = t;
+		set_active_doc(doc);
+		T.audio.currentTime = t;
 		render();
 	    }
 	}
@@ -672,14 +677,16 @@ function render_detail(root, doc, start_time, end_time) {
 	}
     );
 
-    render_pitch(
-	svg, doc.id + '-sspath-',
-	seq_stats.smoothed,
-	{
-	    stroke: '#8D78B9',
-	    'stroke-width': 3,
-	}
-    );
+    if(seq_stats) {
+	render_pitch(
+	    svg, doc.id + '-sspath-',
+	    seq_stats.smoothed,
+	    {
+		stroke: '#8D78B9',
+		'stroke-width': 3,
+	    }
+	);
+    }
 
     // Draw amplitude
     get_cur_rms(doc.id)
@@ -739,7 +746,7 @@ function render_detail(root, doc, start_time, end_time) {
     });
 
 
-    if(T.razors[doc.id]) {
+    if(T.cur_doc == doc.id && T.razors[doc.id]) {
 	svg.rect({id: doc.id + '-d-razor',
 		  attrs: {
 		      x: t2x(T.razors[doc.id] - start_time),
@@ -807,10 +814,13 @@ function render_overview(root, doc) {
 
 		}
 		window.onmouseup = (ev) => {
+		    set_active_doc(doc);
 
 		    if(Math.abs(t2 - t1) < 0.2) {
 			// TODO: Seek audio
 			T.razors[doc.id] = t2;
+			T.audio.currentTime = t2;
+
 			render();
 		    }
 
@@ -879,7 +889,7 @@ function render_overview(root, doc) {
 		 });
     }
 
-    if(T.razors[doc.id]) {
+    if(T.cur_doc == doc.id && T.razors[doc.id]) {
 	svg.rect({id: doc.id + '-o-razor',
 		  attrs: {
 		      x: width * (T.razors[doc.id] / duration),
@@ -944,6 +954,35 @@ function pitch2y(p, p_h) {
     // (https://en.wikipedia.org/wiki/Piano_key_frequencies)
     // n = 12 log2(f/440hz) + 49
     return (-60 * Math.log2(p / 440));
+}
+
+window.onkeydown = (ev) => {
+    // XXX: Make sure we're not editing a transcript.
+    if(ev.key == ' ') {
+	if(T.audio) {
+	    ev.preventDefault();
+	    if(T.audio.paused) {
+		T.audio.play();
+	    }
+	    else {
+		T.audio.pause();
+	    }
+	}
+    }
+}
+
+function tick() {
+    if(T.audio && !T.audio.paused) {
+	T.razors[T.cur_doc] = T.audio.currentTime;
+	render();
+    }
+
+    window.requestAnimationFrame(tick);
+}
+
+if(!T.ticking) {
+    T.ticking = true;
+    tick();
 }
 
 
