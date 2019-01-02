@@ -84,13 +84,13 @@ function reload_docs() {
             T.docs[doc.id] = doc;
 	    T.LAST_T = Math.max(T.LAST_T, doc.modified_time);
 	});
-	if(firsttime) {
-            window.onhashchange();
-	}
-	if(ret.length > 0) {
-            window.onhashchange(); // !!!
+	// if(firsttime) {
+        //     window.onhashchange();
+	// }
+	// if(ret.length > 0) {
+        //     window.onhashchange(); // !!!
             render();
-	}
+	// }
 
 	window.setTimeout(reload_docs, 3000);
     });
@@ -332,6 +332,7 @@ function render_doclist(root) {
 
 	    // Title
 	    docitem.span({id: doc.id + '-name',
+			  classes: ['name'],
 			  text: doc.title});
 
 	    // Hamburger
@@ -343,6 +344,7 @@ function render_doclist(root) {
 		// Expand.
 
 		render_overview(docitem, doc);
+		render_detail(docitem, doc);
 
 	    }
 
@@ -600,6 +602,147 @@ function get_stat_keys(pstats) {
 	.sort();
 }
 
+function render_detail(root, doc) {
+    if(!render_is_ready(root)) {
+	return
+    }
+
+    let segs = get_cur_align(doc.id).segments;
+    let duration = segs[segs.length-1].end;
+
+    const seg_w = t2x(duration - segs[0].start);
+
+    let svg = root.svg({
+	id: doc.id + '-svg-',
+	attrs: {
+	    width: seg_w,
+	    height: T.PITCH_H
+	},
+    });
+
+    // Draw axes
+    var y_axes = [50, 100, 150, 200, 250, 300, 350, 400];
+    y_axes.forEach((yval) => {
+        var y_px = pitch2y(yval);
+
+	svg.line({id: doc.id + '-seg-' + '-axis-' + yval,
+		  attrs: {
+		      x1: 0,
+		      y1: y_px,
+		      x2: seg_w,
+		      y2: y_px,
+		      stroke: '#C4D5D9'
+		  }})
+	svg.text({id: doc.id + '-seg-' + '-axistxt-' + yval,
+		  text: '' + yval + 'Hz',
+		  attrs: {
+		      x: 0,
+		      y: y_px,
+		      class: 'axis',
+		      fill: '#3B5161'
+		  }})
+    });
+
+    // ...and x-axis
+    for(let x=0; x<duration; x++) {
+        var x_px = t2x(x);//-seg.start);
+	// console.log('x', x, x_px);
+
+	svg.line({id: doc.id + '-seg-' + '-xaxis-' + x,
+		  attrs: {
+		      x1: x_px,
+		      y1: 0,
+		      x2: x_px,
+		      y2: T.PITCH_H,
+		      stroke: '#C4D5D9'
+		  }})
+	svg.text({id: doc.id + '-seg-' + '-xaxistxt-' + x,
+		  text: '' + x + 's',
+		  attrs: {
+		      x: x_px + 2,
+		      y: T.PITCH_H - 2,
+		      class: 'axis',
+		      fill: '#3B5161'
+		  }})
+    }
+
+    let seq_stats = pitch_stats(
+	get_cur_pitch(doc.id));//.slice(Math.round(seg.start*100),
+	//Math.round(seg.end*100)));
+
+    render_pitch(
+	svg, doc.id + '-spath-',
+	get_cur_pitch(doc.id),//.slice(Math.round(seg.start*100),
+	//Math.round(seg.end*100)),
+	{
+	    stroke: '#CCBDED',
+	    'stroke-width': 1,
+	}
+    );
+
+    render_pitch(
+	svg, doc.id + '-sspath-',
+	seq_stats.smoothed,
+	{
+	    stroke: '#8D78B9',
+	    'stroke-width': 3,
+	}
+    );
+
+    // Draw amplitude
+    get_cur_rms(doc.id)
+	.forEach((r, r_idx) => {
+
+	    let h = r * T.PITCH_H/5;
+	    let cy = 9.25/10 * T.PITCH_H;
+
+	    svg.line({id: doc.id + '-rms-'  + '-' + r_idx,
+		      attrs: {
+			  x1: fr2x(r_idx),
+			  y1: cy - (h/2),
+			  x2: fr2x(r_idx),
+			  y2: cy + (h/2),
+			  stroke: 'black',
+			  'stroke-width': 2,
+		      }})
+	});
+
+    // Draw each word
+    segs.forEach((seg, seg_idx) => {
+	seg.wdlist.forEach((wd,wd_idx) => {
+
+	    if(!wd.end) { return }
+
+	    if(wd.type == 'gap'){
+		svg.rect({id: doc.id + '-gap-' + seg_idx + '-' + wd_idx,
+			  attrs: {
+			      x: t2x(wd.start),
+			      y: 0,
+			      width: t2w(wd.end - wd.start),
+			      height: T.PITCH_H,
+			      fill: 'rgba(0,0,0,0.05)'
+			  }})
+
+		return
+	    }
+
+	    let wd_stats = pitch_stats(get_cur_pitch(doc.id).slice(Math.round(wd.start*100),
+								   Math.round(wd.end*100)));
+
+	svg.text({id: doc.id + '-txt-' + seg_idx + '-' + wd_idx,
+		  text: wd.word,
+		  attrs: {
+		      class: wd.type=='unaligned' ? 'unaligned' : 'word',
+		      x: t2x(wd.start),
+		      //y: pitch2y((wd_stats&&wd_stats.pitch_mean) || seq_stats.pitch_mean) - 2,
+		      y: pitch2y((wd_stats&&wd_stats.pitch_percentile_91) || seq_stats.pitch_mean) - 2,
+		      fill: '#3B5161',
+		  }
+		 })
+	});
+    });
+}
+
 function render_overview(root, doc) {
     if(!render_is_ready(root)) {
 	return
@@ -668,17 +811,17 @@ function render_overview(root, doc) {
 
 
 
-function render_segs_ss(root, head) {
+function render_segs_ss(root, doc) {
     if(!render_is_ready(root)) {
 	return
     }
 
-    let sheet = root.div({id: 'ss', unordered: true});
+    let sheet = root.div({id: doc.id + '-ss', unordered: true});
 
     // Global data.
-    let pstats = pitch_stats(get_cur_pitch());
+    let pstats = pitch_stats(get_cur_pitch(doc.id));
 
-    Object.assign(pstats, time_stats(get_cur_align().segments.reduce((acc,x) => acc.concat(x.wdlist), [])));
+    Object.assign(pstats, time_stats(get_cur_align(doc.id).segments.reduce((acc,x) => acc.concat(x.wdlist), [])));
 
     let cur_y = 0;
     const stat_keys = get_stat_keys(pstats);
@@ -686,7 +829,7 @@ function render_segs_ss(root, head) {
     stat_keys
 	.forEach((key, col_idx) => {
 	    // Header
-	    sheet.div({id: 'h-' + key,
+	    sheet.div({id: doc.id + '-h-' + key,
 		       text: key,
 		       classes: ['header', 'cell'],
 		       styles: {
@@ -698,7 +841,7 @@ function render_segs_ss(root, head) {
 	    // global
 	    let fval = Math.round(100 * pstats[key]) / 100;
 
-	    sheet.div({id: 'gv-' + key,
+	    sheet.div({id: doc.id + '-gv-' + key,
 		       text: '' + fval,
 		       classes: ['cell', 'global'],
 		       styles: {
@@ -983,205 +1126,6 @@ function render() {
     // }
 
     root.show();
-
-    if(T.cur_doc) {
-        if(T.wd_can) {
-            blit_wd_can();
-        }
-        if(T.graph_can) {
-            blit_graph_can();
-        }
-    }
-
-}
-
-    function blit_wd_can() {
-	return;
-
-    var $can = T.wd_can.$el;
-
-    // Compute word positions
-    T.wd_pos = {};
-
-    var wd_right_max = 0;
-    var wd_top_max = 0;
-
-    Object.keys(T.wd_els)
-        .forEach((wd_idx) => {
-            var pos = {
-                left: T.wd_els[wd_idx].$el.offsetLeft,
-                width: T.wd_els[wd_idx].$el.offsetWidth,
-                top: T.wd_els[wd_idx].$el.offsetTop
-            };
-
-            T.wd_pos[wd_idx] = pos;
-
-            wd_right_max = Math.max(pos.left+pos.width, wd_right_max);
-            wd_top_max = Math.max(pos.top, wd_top_max);
-        });
-
-    // Size canvas to fit all the words
-    $can.setAttribute("width", wd_right_max);
-    $can.setAttribute("height", wd_top_max+60);
-
-    var ctx = $can.getContext('2d');
-
-    get_cur_align().words.forEach(function(w, w_idx) {
-        if(w_idx in T.wd_pos) {
-            render_waveform(ctx, w, T.wd_pos[w_idx]);
-        }
-    });
-}
-
-function blit_graph_can() {
-    var $can = T.graph_can.$el;
-
-    var w = document.body.clientWidth/2;
-    var h = document.body.clientHeight/2;
-
-    $can.setAttribute('width', w);
-    $can.setAttribute('height', h*1.25);
-    // $can.setAttribute('width', w);
-    // $can.setAttribute('height', h*1.25);
-
-
-    var ctx = $can.getContext('2d');
-
-    var nsecs = 0.1 + (T.cur_zoom||0.5)*30;
-
-    var cur_t = T.cur_t || T.audio_el.$el.currentTime || 0;
-
-    var start = Math.max(0, cur_t - nsecs/2);
-    var end = start+nsecs;
-    T.graph_start = start;
-    T.graph_end = end;
-
-    render_waveform(ctx, {start:start, end:end}, {left: 0, top: 0, width: w, height: h}, h);
-
-    // Draw axes
-    var y_axes = [50, 100, 150, 200, 250, 300, 350, 400];
-    y_axes.forEach((yval) => {
-        var y_px = pitch2y(yval, h);
-
-        ctx.fillStyle = "#CFD8DC";
-        ctx.fillRect(0, y_px, w, 1);
-
-        ctx.fillStyle = "#90A4AE";
-        ctx.fillText("" + yval + "Hz", 0, y_px-1);
-    });
-
-    var graph_end_y = pitch2y(50, h);
-
-    for(var t=Math.ceil(start); t<Math.ceil(end); t++) {
-
-        var x_px = w * ((t-start) / (end-start));
-
-        ctx.fillStyle = "#CFD8DC";
-        ctx.fillRect(x_px, 0, 1, graph_end_y);
-
-        ctx.fillStyle = "#90A4AE";
-        ctx.fillText("" + t + "s", x_px-5, graph_end_y+10);
-    }
-
-    var wd_start_y = pitch2y(75, h);
-
-    // Draw in-view words, in-time
-    if(get_cur_align()) {
-        get_cur_align().segments.forEach((seg) => {
-	    seg.wdlist.forEach((wd) => {
-		if(!wd.end || wd.start >= end || wd.end <= start) {
-                    return;
-		}
-
-		var x = w * ((wd.start - start) / (end-start));
-
-		ctx.fillStyle = "#263238";
-		ctx.font = "14pt Arial";
-		ctx.fillText(wd.word, x, wd_start_y)
-
-		wd.phones.forEach((ph) => {
-
-                    ctx.fillStyle = "#B0BEC5";
-                    ctx.font = "10pt Arial";
-                    ctx.fillText(ph.phone.split("_")[0], x, wd_start_y+20)
-
-                    var ph_w = w * (ph.duration / (end-start));
-
-                    ctx.fillRect(x, wd_start_y+5, ph_w, 2);
-
-                    x += ph_w;
-		});
-	    });
-        })
-    }
-
-    // ...Finally, a playhead
-    ctx.fillStyle = "#E85C41";
-    //ctx.fillStyle = "red";
-    ctx.fillRect(w * ((cur_t-start)/(end-start)), 0, 1, graph_end_y);
-}
-
-
-function render_waveform(ctx, w, rect, p_h) {
-    if(!w.end || !get_cur_pitch()) {
-        return;
-    }
-
-    // // Draw waveform
-    var st_idx = Math.floor(w.start * 100);
-    var end_idx = Math.ceil(w.end * 100);
-    var step = rect.width / (end_idx - st_idx);
-
-    var x = rect.left;
-    var y = rect.top;
-    var y_off = 2;
-
-    // ctx.beginPath();
-    // ctx.moveTo(x, y + y_off + 30 - data.rms[st_idx]*30);
-    // for(var i=st_idx+1; i<=end_idx; i++) {
-    //     ctx.lineTo(x + (i-st_idx)*step, y + y_off + 30 - data.rms[i]*30);
-    // }
-    // for(var i=end_idx; i>=st_idx; i--) {
-    //     ctx.lineTo(x + (i-st_idx)*step, y + y_off + 30 + data.rms[i]*30);
-    // }
-    // ctx.fill();
-
-    // ctx.beginPath();
-    // Draw pitch trace
-    ctx.strokeStyle = "#449A88";
-    ctx.lineWidth = 1;
-
-    var offset = 0;
-    while(!get_cur_pitch()[st_idx+offset]) {
-        offset += 1
-        if(offset >= get_cur_pitch().length) {
-            break;
-        }
-    }
-
-    var in_line = false;
-    for(var i=st_idx; i<=end_idx; i++) {
-        if(get_cur_pitch()[i]) {
-            if(!in_line) {
-                ctx.beginPath();
-                ctx.moveTo(x + (i-st_idx)*step, y + y_off + pitch2y(get_cur_pitch()[i], p_h));
-                //ctx.moveTo(x + offset*step, y + y_off + pitch2y(get_cur_pitch()[st_idx+offset], p_h));
-                in_line = true;
-            }
-            else {
-                ctx.lineTo(x + (i-st_idx)*step, y + y_off + pitch2y(get_cur_pitch()[i], p_h));
-            }
-        }
-        else {
-            if(in_line) {
-                ctx.stroke();
-            }
-            in_line = false;
-        }
-    }
-    if(in_line) {
-        ctx.stroke();
-    }
 }
 
 function fr2x(fr) {
