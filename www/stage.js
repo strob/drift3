@@ -601,6 +601,16 @@ function render_detail(root, doc, start_time, end_time) {
 	    width: seg_w,
 	    height: T.PITCH_H
 	},
+	events: {
+	    onclick: (ev) => {
+		ev.preventDefault();
+
+		// Seek!
+		let t = start_time + x2t(ev.clientX + svg.$el.parentElement.scrollLeft);
+		T.razors[doc.id] = t;
+		render();
+	    }
+	}
     });
 
     // Draw axes
@@ -853,18 +863,6 @@ function render_overview(root, doc) {
 	    })
 	});
 
-
-    if(T.razors[doc.id]) {
-	svg.rect({id: doc.id + '-o-razor',
-		  attrs: {
-		      x: width * (T.razors[doc.id] / duration),
-		      y: 0,
-		      width: 2,
-		      height: height,
-		      fill: 'red'
-		  }
-		 });
-    }
     if(T.selections[doc.id]) {
 	let sel = T.selections[doc.id];
 
@@ -879,8 +877,20 @@ function render_overview(root, doc) {
 		      fill: 'none'
 		  }
 		 });
-
     }
+
+    if(T.razors[doc.id]) {
+	svg.rect({id: doc.id + '-o-razor',
+		  attrs: {
+		      x: width * (T.razors[doc.id] / duration),
+		      y: 0,
+		      width: 2,
+		      height: height,
+		      fill: 'red'
+		  }
+		 });
+    }
+
 }
 
 function render_is_ready(root) {
@@ -912,6 +922,9 @@ function fr2x(fr) {
 }
 function t2x(t) {
     return T.LPAD + t2w(t);
+}
+function x2t(x) {
+    return (x - T.LPAD)/T.XSCALE;
 }
 function t2w(t) {
     return t*T.XSCALE;
