@@ -775,9 +775,15 @@ function render_overview(root, doc) {
 
 		    if(Math.abs(t2 - t1) > 0.2) {
 
+			let start = Math.min(t1, t2);
+			let end = Math.max(t1, t2);
+
+			// Limit to 30secs
+			end = Math.min(start+30, end);
+
 			T.selections[doc.id] = {
-			    start_time: Math.min(t1, t2),
-			    end_time: Math.max(t1, t2)
+			    start_time: start,
+			    end_time: end
 			};
 
 			render();
