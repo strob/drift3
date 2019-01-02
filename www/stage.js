@@ -71,6 +71,9 @@ if(!T.docs) {
     T.docs = {};
     reload_docs();
 }
+if(!T.active) {
+    T.active = {};
+}
 
 function reload_docs() {
     T.LAST_T = T.LAST_T || 0;
@@ -232,88 +235,118 @@ function render_doclist(root) {
     get_docs()
         .forEach((doc) => {
 
-            var doc_has_everything = doc.path && doc.transcript && get_docs(doc.id);
+            // var doc_has_everything = doc.path && doc.transcript && get_docs(doc.id);
 
-            if(!doc_has_everything) {
-		var docel = root.div({
-                    id: "item-" + doc.id,
-                    classes: ['listitem', doc_has_everything ? 'ready' : 'pending'],
-		});
+            // if(!doc_has_everything) {
+	    // 	var docel = root.div({
+            //         id: "item-" + doc.id,
+            //         classes: ['listitem', doc_has_everything ? 'ready' : 'pending'],
+	    // 	});
 
-		new PAL.Element("div", {
-                    id: "del-" + doc.id,
-                    classes: ['delete'],
-                    text: 'delete',
-                    events: {
-			onclick: (ev) => {
-                            ev.preventDefault();
-                            ev.stopPropagation();
+	    // 	new PAL.Element("div", {
+            //         id: "del-" + doc.id,
+            //         classes: ['delete'],
+            //         text: 'delete',
+            //         events: {
+	    // 		onclick: (ev) => {
+            //                 ev.preventDefault();
+            //                 ev.stopPropagation();
 
-                            FARM.post_json("/_rec/_remove", {id: doc.id}, (ret) => {
-				delete T.docs[ret.remove];
-				render();
-                            });
+            //                 FARM.post_json("/_rec/_remove", {id: doc.id}, (ret) => {
+	    // 			delete T.docs[ret.remove];
+	    // 			render();
+            //                 });
 
-                            console.log("delete", doc.id);
-			}
-                    },
-                    parent: docel
-		});
+            //                 console.log("delete", doc.id);
+	    // 		}
+            //         },
+            //         parent: docel
+	    // 	});
 
-		new PAL.Element("div", {
-                    id: "title-" + doc.id,
-                    classes: ['title'],
-                    text: doc.title,
-                    parent: docel});
+	    // 	new PAL.Element("div", {
+            //         id: "title-" + doc.id,
+            //         classes: ['title'],
+            //         text: doc.title,
+            //         parent: docel});
 
-		if(doc.upload_status && !doc.path) {
-                    // Show progress
-                    new PAL.Element("progress", {
-			id: doc.id + '-progress',
-			parent: docel,
-			attrs: {
-                            max: "100",
-                            value: "" + Math.floor((100*doc.upload_status))
-			},
-                    })
-		}
-		if(!doc.pitch) {
-                    new PAL.Element("div", {
-			id: doc.id + "-pload",
-			parent: docel,
-			text: "Computing pitch...",
-			events: {
-                            onclick: (ev) => {
-				ev.preventDefault();
-				ev.stopPropagation();
+	    // 	if(doc.upload_status && !doc.path) {
+            //         // Show progress
+            //         new PAL.Element("progress", {
+	    // 		id: doc.id + '-progress',
+	    // 		parent: docel,
+	    // 		attrs: {
+            //                 max: "100",
+            //                 value: "" + Math.floor((100*doc.upload_status))
+	    // 		},
+            //         })
+	    // 	}
+	    // 	if(!doc.pitch) {
+            //         new PAL.Element("div", {
+	    // 		id: doc.id + "-pload",
+	    // 		parent: docel,
+	    // 		text: "Computing pitch...",
+	    // 		events: {
+            //                 onclick: (ev) => {
+	    // 			ev.preventDefault();
+	    // 			ev.stopPropagation();
 
-				FARM.post_json("/_pitch", {id: doc.id}, (ret) => {
-                                    console.log("pitch returned");
+	    // 			FARM.post_json("/_pitch", {id: doc.id}, (ret) => {
+            //                         console.log("pitch returned");
 
-				});
+	    // 			});
 
-                            }
-			}
-                    });
-		}
-		if(!doc.transcript) {
-                    render_paste_transcript(docel, doc.id);
-		}
-	    }
+            //                 }
+	    // 		}
+            //         });
+	    // 	}
+	    // 	if(!doc.transcript) {
+            //         render_paste_transcript(docel, doc.id);
+	    // 	}
+	    // }
 
 	    // doc ready!!
 
-	    root.div({id: doc.id,
-		      text: doc.title,
-		      classes: [get_data(doc.id) ? 'ready' : 'pending'],
-		      events: {
-			  onclick: () => {
-			      if(get_data(doc.id)) {
-				  window.location.hash = doc.id;
-			      }
-			  }
-		      }
-		     })
+	    let is_active = T.active[doc.id];
+
+	    let docitem = root.div({id: doc.id,
+				    //text: doc.title,
+				    classes: ['driftitem', get_data(doc.id) ? (is_active ? 'active' : 'ready') : 'pending'],
+				    events: {
+					onclick: () => {
+					    if(get_data(doc.id)) {
+						T.active[doc.id] = !T.active[doc.id];
+						if(T.active[doc.id]) {
+						    T.cur_doc = doc.id;
+						    //window.location.hash = doc.id;
+						}
+						render();
+					    }
+					}
+				    }
+				   });
+
+	    // Expand
+	    docitem.span({id: doc.id + '-expand',
+			  classes: ['expand'],
+			  text: is_active ? "v " : "> "});
+
+	    // Title
+	    docitem.span({id: doc.id + '-name',
+			  text: doc.title});
+
+	    // Hamburger
+	    docitem.div({id: doc.id + '-hamburger',
+			 text: ":",
+			 classes: ['hamburger']})
+
+	    if(T.active[doc.id]) {
+		// Expand.
+
+		docitem.div({id: doc.id + '-active',
+			     text: 'active'});
+
+	    }
+
 
 	})
 }
@@ -938,18 +971,17 @@ function render() {
 
     let head = render_header(root);
 
-    if(T.cur_doc) {
+    // if(T.cur_doc) {
+    // 	render_overview(root);
 
-	render_overview(root);
-
-        //render_doc(root, head);
-	//render_segs(root, head);
-	render_segs_ss(root);
-    }
-    else {
+    //     //render_doc(root, head);
+    // 	//render_segs(root, head);
+    // 	render_segs_ss(root);
+    // }
+    // else {
         render_uploader(root);
         render_doclist(root);
-    }
+    // }
 
     root.show();
 
@@ -1179,23 +1211,22 @@ function pitch2y(p, p_h) {
     return (-50 * Math.log2(p / 440));
 }
 
-window.onhashchange = () => {
-    var docid = window.location.hash.slice(1);
-    console.log("hash", docid, window);
+// window.onhashchange = () => {
+//     var docid = window.location.hash.slice(1);
+//     console.log("hash", docid, window);
 
-    if(docid in T.docs) {
-	T.SHOW_SEGS={};
-        T.cur_doc = docid;
-    }
-    else if(docid) {
-        window.location.hash = "";
-        return;
-    }
-    else {
-        T.cur_doc = undefined;
-    }
-    render();
-}
-
+//     if(docid in T.docs) {
+// 	T.SHOW_SEGS={};
+//         T.cur_doc = docid;
+//     }
+//     else if(docid) {
+//         window.location.hash = "";
+//         return;
+//     }
+//     else {
+//         T.cur_doc = undefined;
+//     }
+//     render();
+// }
 
 render();

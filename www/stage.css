@@ -24,6 +24,39 @@ body {
     font-weight: bold;
     cursor: pointer;
 }
+
+.driftitem {
+    padding: 3px;
+    background-color: white;
+    margin: 2px 0;
+    position: relative;
+    height: 25px;
+
+    transition-property: height;
+    transition-duration: 0.2s;
+}
+.driftitem.ready {
+    cursor: pointer;
+}
+.driftitem.active {
+    height: 225px;
+}
+.expand {
+    font-family: mono, monospace;
+}
+.driftitem.ready:hover {
+    color: blue;
+}
+.hamburger {
+    position: absolute;
+    right: 0;
+    height: 25px;
+    background-color: #ccc;
+    width: 30px;
+    text-align: center;
+    top: 0;
+}
+
 .listitem {
     margin-left: 10%;
     width: 80%;
@@ -35,6 +68,7 @@ body {
 }
 .listitem.upload {
     border: 1px dashed #999;
+    margin-bottom: 10px;
     padding: 20px;
     font-weight: bold;
     cursor: inherit;
@@ -48,7 +82,7 @@ body {
 }
 .pending {
      color: #90A4AE;
-} 
+}
 .paste {
     font-style: italic;
     margin: 5px;
@@ -151,7 +185,7 @@ a {
     font-size: 14pt;
 
     padding: 10px;
-    
+
     letter-spacing: 2;
     width: 45%;
     color: #263238;
