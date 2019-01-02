@@ -30,14 +30,14 @@ function cached_get_url(url, proc_fn) {
 }
 
 // legacy
-function get_cur_pitch() {
-    return (get_data(T.cur_doc)||{}).pitch
+function get_cur_pitch(id) {
+    return (get_data(id || T.cur_doc)||{}).pitch
 }
-function get_cur_align() {
-    return (get_data(T.cur_doc)||{}).align
+function get_cur_align(id) {
+    return (get_data(id || T.cur_doc)||{}).align
 }
-function get_cur_rms() {
-    return (get_data(T.cur_doc)||{}).rms
+function get_cur_rms(id) {
+    return (get_data(id || T.cur_doc)||{}).rms
 }
 
 function get_data(docid) {
@@ -342,8 +342,7 @@ function render_doclist(root) {
 	    if(T.active[doc.id]) {
 		// Expand.
 
-		docitem.div({id: doc.id + '-active',
-			     text: 'active'});
+		render_overview(docitem, doc);
 
 	    }
 
@@ -601,25 +600,25 @@ function get_stat_keys(pstats) {
 	.sort();
 }
 
-function render_overview(root) {
+function render_overview(root, doc) {
     if(!render_is_ready(root)) {
 	return
     }
 
-    let overview = root.div({id: 'oview', unordered: true});
+    let overview = root.div({id: doc.id + '-oview', unordered: true});
 
     let width = document.body.clientWidth;
     let height = 50;
 
     let svg = root.svg({
-	id: 'svg-overview',
+	id: doc.id + '-svg-overview',
 	attrs: {
 	    width: width,
 	    height: height
 	}
     });
 
-    let align = get_cur_align();
+    let align = get_cur_align(doc.id);
     let duration = align.segments[align.segments.length-1].end;
 
     console.log("Duration", duration);
@@ -643,7 +642,7 @@ function render_overview(root) {
 		    // Word
 
 		    // Compute word-pitch
-		    let wd_pitch = get_cur_pitch()
+		    let wd_pitch = get_cur_pitch(doc.id)
 			.slice(Math.floor(wd.start * 100), Math.floor(wd.end * 100));
 
 		    // console.log('wd_pitch', wd_pitch);
