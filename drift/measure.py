@@ -20,6 +20,30 @@ class Measure:
         self.pitch = pitch
         self.alignment = alignment
 
+    def _raw_compute(self, start_time=None, end_time=None):
+        stat_list = []
+        for seg in self.alignment["segments"]:
+            if end_time is not None and seg["start"] > end_time:
+                break
+            if start_time is not None and seg["end_time"] < start_time:
+                continue
+
+            seg_st = seg["start"]
+            if start_time is not None:
+                seg_st = max(seg_st, start_time)
+            seg_end = seg["end"]
+            if end_time is not None:
+                seg_end = min(end_time, seg_end)
+
+            stat_list.append(self._raw_measure_for_segment(seg, seg_st, seg_end))
+
+        stats = self._accumulate_stats(stat_list)
+        return stats
+
+    def compute(self, start_time=None, end_time=None):
+        stats = self._raw_compute(start_time, end_time)
+        return self._compute_measure(stats)
+
     def _raw_measure_for_segment(self, segment, start_time=0, end_time=None):
         out = {}
 
@@ -140,11 +164,13 @@ class Measure:
 
         return out
 
-    def _accumulate_stats(self, acc, s2):
+    def _accumulate_stats(self, stat_list):
         # Does everything just sum?
         out = {}
-        for k, v in s2.items():
-            out[k] = acc[k] + v
+        for key in stat_list[0].keys():
+            out[key] = functools.reduce(
+                lambda acc, x: acc + x, [S[key] for S in stat_list]
+            )
         return out
 
     def _compute_measure(self, stats):
@@ -214,9 +240,11 @@ class Measure:
         wdlist = segment["wdlist"]
         pitch = self.pitch
 
+        # print("trim", segment, start_time, end_time)
+
         # 1. Trim segment words & pitch
         if start_time is not None:
-            wdlist = [X for X in wdlist if X["end"] > start_time]
+            wdlist = [X for X in wdlist if X.get("end") and X["end"] > start_time]
             pitch = pitch[int(start_time * 100) :]
         else:
             start_time = 0

@@ -32,6 +32,8 @@ body {
     position: relative;
     height: 25px;
 
+    position: relative;
+
     transition-property: height;
     transition-duration: 0.2s;
 }
@@ -270,4 +272,8 @@ a {
 }
 #hamburger div:hover {
     background-color: #eee;
+}
+.sbar {
+    position: absolute;
+    top: 0;
 }

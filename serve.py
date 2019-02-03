@@ -10,6 +10,8 @@ import json
 import nmt
 import numpy as np
 
+from drift import measure
+
 BUNDLE = False
 
 
@@ -417,6 +419,25 @@ def rms(cmd):
 
     return {"rms": rmshash}
 
+
+def _measure(id=None, start_time=None, end_time=None, raw=False):
+    meta = rec_set.get_meta(id)
+    align = json.load(open(os.path.join("local", "_attachments", meta["align"])))
+    pitch = [
+        [float(Y) for Y in X.split(" ")]
+        for X in open(os.path.join("local", "_attachments", meta["pitch"]))
+    ]
+
+    m = measure.Measure([X[1] for X in pitch], align)
+
+    stats = m._raw_compute(start_time, end_time)
+    out = {"measure": m._compute_measure(stats)}
+    if raw:
+        out["raw"] = stats
+    return out
+
+
+root.putChild(b"_measure", guts.GetArgs(_measure, runasync=True))
 
 root.putChild(b"_rms", guts.PostJson(rms, runasync=True))
 
