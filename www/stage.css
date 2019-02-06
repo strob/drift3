@@ -272,12 +272,15 @@ a {
     background-color: #ccc;
     z-index: 100;
 }
-#hamburger div {
+#hamburger div, #hamburger a {
     padding: 2px;
     border-bottom: 1px solid black;
     cursor: pointer;
+    display: block;
+    text-decoration: none;
+    color: black;
 }
-#hamburger div:hover {
+#hamburger div:hover, #hamburger a:hover {
     background-color: #eee;
 }
 .sbar {

@@ -968,7 +968,27 @@ function render_hamburger(root, doc) {
 			                  //text: 'ham'
 		                   });
 
-    ['csv', 'svg', 'delete'].forEach((name) => {
+    let pregen_downloads = ['csv', 'mat', 'align', 'pitch'];
+    pregen_downloads.forEach((name) => {
+        if(!doc[name]) {
+            return;
+        }
+        let out_filename = doc.title.split('.')[0] + '-' + name + '.' + doc[name].split('.')[1];
+
+	      ham.a({
+	          id: 'ham-' + name,
+	          text: name,
+            attrs: {
+                href: '/media/' + doc[name],
+                _target: '_blank',
+                download: out_filename
+            }
+	      });
+    });
+
+
+    let actions = ['delete'];
+    actions.forEach((name) => {
 	      ham.div({
 	          id: 'ham-' + name,
 	          text: name,
