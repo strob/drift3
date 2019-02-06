@@ -9,6 +9,7 @@ import subprocess
 import json
 import nmt
 import numpy as np
+import scipy.io as sio
 
 from drift import measure
 
@@ -422,6 +423,45 @@ def rms(cmd):
     )
 
     return {"rms": rmshash}
+
+
+def gen_mat(id):
+    # Hm!
+    meta = rec_set.get_meta(id)
+
+    out = {}
+
+    measure = _measure(id, raw=True)
+
+    out.update(measure["measure"])
+    out.update(measure["raw"])
+
+    if meta.get("rms"):
+        out["rms"] = np.array(
+            json.load(open(os.path.join(get_attachpath(), meta["rms"])))
+        )
+    if meta.get("pitch"):
+        p_path = os.path.join(get_attachpath(), meta["pitch"])
+        out["pitch"] = np.array(
+            [float(X.split()[1]) for X in open(p_path) if len(X.split()) > 2]
+        )
+    if meta.get("align"):
+        a_path = os.path.join(get_attachpath(), meta["align"])
+        out["align"] = json.load(open(a_path))
+
+    with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as mf:
+        sio.savemat(mf.name, out)
+
+        mathash = guts.attach(mf.name, get_attachpath())
+
+    guts.bschange(
+        rec_set.dbs[id], {"type": "set", "id": "meta", "key": "mat", "val": mathash}
+    )
+
+    return {"mat": mathash}
+
+
+root.putChild(b"_mat", guts.PostJson(gen_mat, runasync=True))
 
 
 def _measure(id=None, start_time=None, end_time=None, raw=False):

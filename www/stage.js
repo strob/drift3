@@ -457,9 +457,12 @@ function render_paste_transcript(root, docid) {
                             FARM.post_json("/_align", {id: docid}, (p_ret) => {
                                 console.log("align returned");
 
-				                        // Trigger CSV computation (assuming pitch also there)
+				                        // Trigger CSV & MAT computation (assuming pitch also there)
 				                        FARM.post_json("/_csv", {id: docid}, (c_ret) => {
 				                            console.log("csv returned");
+				                        });
+				                        FARM.post_json("/_mat", {id: docid}, (c_ret) => {
+				                            console.log("mat returned");
 				                        });
                             });
 
