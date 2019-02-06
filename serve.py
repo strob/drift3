@@ -357,7 +357,7 @@ def gen_csv(cmd):
             speaker = None
 
             for wd_idx, wd in enumerate(words):
-                if wd.get("start") is None:
+                if wd.get("start") is None or wd.get("end") is None:
                     continue
 
                 if wd["start"] <= t and wd["end"] >= t:
@@ -375,7 +375,12 @@ def gen_csv(cmd):
 
                     break
 
-            row = [t, pitch_val, wd_txt.decode("utf-8"), ph_txt, speaker]
+            if type(wd_txt) == bytes:
+                wd_txt = wd_txt.decode("utf-8")
+            elif type(wd_txt) != str:
+                wd_txt = str(wd_txt or "")
+
+            row = [t, pitch_val, wd_txt, ph_txt, speaker]
             w.writerow(row)
 
         fp.flush()
