@@ -209,7 +209,6 @@ function got_files(files) {
                             // Immediately trigger a pitch trace
                             FARM.post_json("/_pitch", {id: ret.id}, (p_ret) => {
                                 console.log("pitch returned");
-
                             });
 
 			                      // ...and RMS
@@ -221,6 +220,7 @@ function got_files(files) {
 
                     }, function(p, cur_uploading) {
                         T.docs[ret.id].upload_status = p / ret.size;
+                        console.log("upload_status", T.docs[ret.id].upload_status);
                         render();
                     });
 
@@ -236,51 +236,6 @@ function render_doclist(root) {
     get_docs()
         .forEach((doc) => {
 
-            // var doc_has_everything = doc.path && doc.transcript && get_docs(doc.id);
-
-            // if(!doc_has_everything) {
-	          // 	var docel = root.div({
-            //         id: "item-" + doc.id,
-            //         classes: ['listitem', doc_has_everything ? 'ready' : 'pending'],
-	          // 	});
-
-	          // 	new PAL.Element("div", {
-            //         id: "del-" + doc.id,
-            //         classes: ['delete'],
-            //         text: 'delete',
-            //         events: {
-	          // 		onclick: (ev) => {
-            //                 ev.preventDefault();
-            //                 ev.stopPropagation();
-
-            //                 FARM.post_json("/_rec/_remove", {id: doc.id}, (ret) => {
-	          // 			delete T.docs[ret.remove];
-	          // 			render();
-            //                 });
-
-            //                 console.log("delete", doc.id);
-	          // 		}
-            //         },
-            //         parent: docel
-	          // 	});
-
-	          // 	new PAL.Element("div", {
-            //         id: "title-" + doc.id,
-            //         classes: ['title'],
-            //         text: doc.title,
-            //         parent: docel});
-
-	          // 	if(doc.upload_status && !doc.path) {
-            //         // Show progress
-            //         new PAL.Element("progress", {
-	          // 		id: doc.id + '-progress',
-	          // 		parent: docel,
-	          // 		attrs: {
-            //                 max: "100",
-            //                 value: "" + Math.floor((100*doc.upload_status))
-	          // 		},
-            //         })
-	          // 	}
 	          // 	if(!doc.pitch) {
             //         new PAL.Element("div", {
 	          // 		id: doc.id + "-pload",
@@ -300,19 +255,18 @@ function render_doclist(root) {
 	          // 		}
             //         });
 	          // 	}
-	          // 	if(!doc.transcript) {
-            //         render_paste_transcript(docel, doc.id);
-	          // 	}
 	          // }
 
 	          // doc ready!!
 
 	          let is_active = T.active[doc.id];
+            let is_pending = !get_data(doc.id);
 
 	          let docitem = root.div({id: doc.id,
 				                            //text: doc.title,
-				                            classes: ['driftitem', get_data(doc.id) ? (is_active ? 'active' : 'ready') : 'pending']
+				                            classes: ['driftitem', is_pending ? 'pending' : (is_active ? 'active' : 'ready')]
 				                           });
+
 
 	          // Top bar
 	          let docbar = docitem.div({id: doc.id + "-bar",
@@ -331,12 +285,28 @@ function render_doclist(root) {
 	          // Expand
 	          docbar.span({id: doc.id + '-expand',
 			                   classes: ['expand'],
-			                   text: is_active ? "v " : "> "});
+			                   text: is_active||is_pending ? "v " : "> "});
 
 	          // Title
 	          docbar.span({id: doc.id + '-name',
 			                   classes: ['name'],
 			                   text: doc.title});
+
+
+	          if(doc.upload_status && !doc.path) {
+                console.log("RENDER Upload progress!", doc.upload_status)
+                // Show progress
+                new PAL.Element("progress", {
+	          		    id: doc.id + '-progress',
+	          		    parent: docbar,
+	          		    attrs: {
+                        max: "100",
+                        value: "" + Math.floor((100*doc.upload_status))
+	          		    },
+                })
+
+                return;
+	          }
 
 	          // Hamburger
 	          docbar.div({id: doc.id + '-hamburger',
@@ -444,7 +414,6 @@ function render_paste_transcript(root, docid) {
         text: "paste in a transcript to continue"
     });
 
-    // T.transpastes[docid] =
     new PAL.Element("textarea", {
         parent: root,
         id: 'tscript-' + docid,

@@ -43,6 +43,9 @@ body {
 .driftitem.active {
     height: 385px;
 }
+.driftitem.pending {
+    height: 155px;
+}
 .expand {
     font-family: mono, monospace;
 }
