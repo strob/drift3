@@ -370,30 +370,10 @@ function render_doclist(root) {
 			                  },
 			                  classes: ['hamburger']})
 
-            let stats = cached_get_url('/_measure?id=' + doc.id, JSON.parse).measure;
-            if(stats) {
-                let statbar = docitem.div({id: 'sb-'+ doc.id, classes: ['sbar']});
-                Object.keys(stats)
-                    .sort()
-                    .forEach((key,idx) => {
-                        statbar.div({
-                            id: 'sb-' + doc.id + '-' + key,
-                            classes: ['sb', 'cell'],
-                            attrs: {
-                                title: key
-                            },
-                            styles: {
-                                left: 250 + 70*idx,
-                                width: 70
-                            },
-                            text: Math.round(stats[key] * 100) / 100
-                        });
-                    });
-            }
-
-
 	          if(T.active[doc.id]) {
 		            // Expand.
+
+                render_stats(docitem, doc);
 
 		            render_overview(docitem, doc);
 
@@ -412,6 +392,51 @@ function render_doclist(root) {
 
 
 	      })
+}
+
+function render_stats(root, doc) {
+    let stats = cached_get_url('/_measure?id=' + doc.id, JSON.parse).measure;
+    if(stats) {
+        let statbar = root.div({id: 'sb-'+ doc.id, classes: ['sbar']});
+
+        let keys = Object.keys(stats)
+            .sort();
+
+        const cell_w = 100;
+
+        // Header
+
+        keys
+            .forEach((key,idx) => {
+                statbar.div({
+                    id: 'sb-h-' + doc.id + '-' + key,
+                    classes: ['sb', 'cell', 'header'],
+                    styles: {
+                        left: cell_w*idx,
+                        width: cell_w
+                    },
+                    attrs: {
+                        title: key
+                    },
+                    text: key
+                });
+            })
+
+        keys
+            .forEach((key,idx) => {
+                statbar.div({
+                    id: 'sb-' + doc.id + '-' + key,
+                    classes: ['sb', 'cell'],
+                    styles: {
+                        left: cell_w*idx,
+                        top: 20,
+                        width: cell_w
+                    },
+                    text: Math.round(stats[key] * 100) / 100
+                });
+            });
+    }
+
 }
 
 function render_paste_transcript(root, docid) {

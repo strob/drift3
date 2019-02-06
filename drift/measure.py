@@ -179,6 +179,8 @@ class Measure:
             out["mean_pause_duration"] = (
                 stats["pause_duration"] / stats["number_of_pauses"]
             )
+        else:
+            out["mean_pause_duration"] = 0
 
         out["words_per_minute"] = stats["number_of_words"] / (stats["duration"] / 60.0)
         out["phonemes_per_minute"] = stats["number_of_phonemes"] / (

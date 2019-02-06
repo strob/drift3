@@ -41,7 +41,7 @@ body {
     cursor: pointer;
 }
 .driftitem.active {
-    height: 325px;
+    height: 385px;
 }
 .expand {
     font-family: mono, monospace;
@@ -240,6 +240,9 @@ a {
 
     transition-property: top, left, width, height;
     transition-duration: 0.2s;
+
+    height: 20px;
+    overflow: hidden;
 }
 .header.cell {
     border: 1px solid #3B5161;
@@ -274,6 +277,7 @@ a {
     background-color: #eee;
 }
 .sbar {
-    position: absolute;
-    top: 0;
+    position: relative;
+    height: 50px;
+    width: 100%;
 }
