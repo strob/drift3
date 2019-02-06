@@ -40,6 +40,13 @@ function get_cur_rms(id) {
     return (get_data(id || T.cur_doc)||{}).rms
 }
 
+function has_data(docid) {
+    let meta = T.docs[docid];
+    if(!meta) { return }
+
+    return meta.pitch && meta.align && meta.rms;
+}
+
 function get_data(docid) {
     // or null if they're not loaded...
 
@@ -260,7 +267,7 @@ function render_doclist(root) {
 	          // doc ready!!
 
 	          let is_active = T.active[doc.id];
-            let is_pending = !get_data(doc.id);
+            let is_pending = !has_data(doc.id);
 
 	          let docitem = root.div({id: doc.id,
 				                            //text: doc.title,
@@ -273,7 +280,7 @@ function render_doclist(root) {
 				                              classes: ['docbar'],
 				                              events: {
 					                                onclick: () => {
-					                                    if(get_data(doc.id)) {
+					                                    if(has_data(doc.id)) {
 						                                      T.active[doc.id] = !T.active[doc.id];
 						                                      set_active_doc(doc);
 						                                      render();
