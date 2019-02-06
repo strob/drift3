@@ -430,7 +430,8 @@ def rms(cmd):
     return {"rms": rmshash}
 
 
-def gen_mat(id):
+def gen_mat(cmd):
+    id = cmd["id"]
     # Hm!
     meta = rec_set.get_meta(id)
 
