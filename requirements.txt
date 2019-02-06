@@ -1,6 +1,7 @@
-scikits.audiolab
 numpy
+scikits.audiolab
 Twisted
 autobahn[twisted,accelerate]
 watchdog
 sklearn
+Pillow
