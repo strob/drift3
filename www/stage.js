@@ -294,7 +294,6 @@ function render_doclist(root) {
 
 
 	          if(doc.upload_status && !doc.path) {
-                console.log("RENDER Upload progress!", doc.upload_status)
                 // Show progress
                 new PAL.Element("progress", {
 	          		    id: doc.id + '-progress',
@@ -304,8 +303,6 @@ function render_doclist(root) {
                         value: "" + Math.floor((100*doc.upload_status))
 	          		    },
                 })
-
-                return;
 	          }
 
 	          // Hamburger
@@ -336,7 +333,10 @@ function render_doclist(root) {
 			                  },
 			                  classes: ['hamburger']})
 
-	          if(T.active[doc.id]) {
+            if(is_pending) {
+                render_paste_transcript(docitem, doc.id);
+            }
+	          else if(is_active) {
 		            // Expand.
 
                 render_stats(docitem, doc);
@@ -407,15 +407,13 @@ function render_stats(root, doc) {
 
 function render_paste_transcript(root, docid) {
 
-    new PAL.Element("div", {
-        parent: root,
+    root.div({
         id: "ptrans-" + docid,
         classes: ['paste'],
         text: "paste in a transcript to continue"
     });
 
-    new PAL.Element("textarea", {
-        parent: root,
+    root.textarea({
         id: 'tscript-' + docid,
         classes: ['ptext'],
         events: {
@@ -438,7 +436,9 @@ function render_paste_transcript(root, docid) {
                 ev.preventDefault();
                 ev.stopPropagation();
 
-                // XXX: do something to prevent dual-submission...
+                // prevent dual-submission...
+                this.disabled = true;
+                this.textContent = "aligning transcript...";
 
                 var txt = document.getElementById('tscript-' + docid).value;
                 if(txt) {
@@ -467,7 +467,6 @@ function render_paste_transcript(root, docid) {
                         });
                     });
                 }
-
             }
         }
     });

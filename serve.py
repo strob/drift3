@@ -248,11 +248,15 @@ def align(cmd):
             # url += '&disfluency=true'
 
             # XXX: can I count on `curl` on os x? I think so?
-            subprocess.call(
+            gentle_cmd = (
                 ["curl", "-o", fp.name, "-X", "POST", "-F", "audio=@%s" % (media)]
                 + t_opts
                 + [url]
             )
+
+            print(gentle_cmd)
+
+            subprocess.check_call(gentle_cmd)
 
             trans = json.load(open(fp.name))
 
@@ -306,7 +310,7 @@ def align(cmd):
         seg["end"] = cur_end
 
     # For now, hit disk. Later we can explore the transcription DB.
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as dfh:
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as dfh:
         json.dump(diary, dfh, indent=2)
 
         alignhash = guts.attach(dfh.name, get_attachpath())
@@ -362,7 +366,7 @@ def gen_csv(cmd):
 
                     # find phone
                     cur_t = wd["start"]
-                    for phone in wd["phones"]:
+                    for phone in wd.get("phones", []):
                         if cur_t + phone["duration"] >= t:
                             ph_txt = phone["phone"]
                             break
@@ -370,7 +374,7 @@ def gen_csv(cmd):
 
                     break
 
-            row = [t, pitch_val, wd_txt, ph_txt, speaker]
+            row = [t, pitch_val, wd_txt.decode("utf-8"), ph_txt, speaker]
             w.writerow(row)
 
         fp.flush()

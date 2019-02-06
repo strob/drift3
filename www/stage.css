@@ -97,7 +97,8 @@ body {
 .paste {
     font-style: italic;
     margin: 5px;
-    margin-top: 15px;
+    font-size: 0.5em;
+    opacity: 0.75;
 }
 .listitem.upload.drag {
     background-color: yellow;
