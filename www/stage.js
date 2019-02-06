@@ -389,9 +389,9 @@ function render_stats(root, doc) {
                         width: cell_w
                     },
                     attrs: {
-                        title: key
+                        title: key.replace(/_/g, ' ')
                     },
-                    text: key
+                    text: key.replace(/_/g, ' ')
                 });
             })
 

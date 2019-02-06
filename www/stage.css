@@ -252,6 +252,7 @@ a {
     border: 1px solid #3B5161;
     text-align: center;
     font-weight: bold;
+    font-size: 0.5em;
 }
 .cell.txt {
     border: 0;
