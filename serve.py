@@ -230,7 +230,7 @@ def align(cmd):
         open(os.path.join(get_attachpath(), meta["transcript"])).read()
     )
 
-    with tempfile.NamedTemporaryFile(suffix=".txt") as txtfp:
+    with tempfile.NamedTemporaryFile(suffix=".txt", mode="w") as txtfp:
         txtfp.write("\n".join([X["line"] for X in segs]))
         txtfp.flush()
 
@@ -339,7 +339,7 @@ def gen_csv(cmd):
             wd_p["speaker"] = seg["speaker"]
             words.append(wd_p)
 
-    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as fp:
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as fp:
         w = csv.writer(fp)
 
         w.writerow(["time (s)", "pitch (hz)", "word", "phoneme", "speaker"])
@@ -397,10 +397,10 @@ def rms(cmd):
 
     snd = nmt.sound2np(vpath, R=R, nchannels=1, ffopts=["-filter:a", "dynaudnorm"])
 
-    WIN_LEN = R / 100
+    WIN_LEN = int(R / 100)
 
     rms = []
-    for idx in range(len(snd) / WIN_LEN):
+    for idx in range(int(len(snd) / WIN_LEN)):
         chunk = snd[idx * WIN_LEN : (idx + 1) * WIN_LEN]
         rms.append((chunk.astype(float) ** 2).sum() / len(chunk))
     rms = np.array(rms)
@@ -408,7 +408,7 @@ def rms(cmd):
     rms -= rms.min()
     rms /= rms.max()
 
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as fh:
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as fh:
         json.dump(rms.tolist(), fh)
 
         rmshash = guts.attach(fh.name, get_attachpath())
