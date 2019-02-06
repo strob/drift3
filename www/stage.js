@@ -217,10 +217,6 @@ function got_files(files) {
 				                        console.log("rms returned");
 			                      });
 
-			                      // // TODO: FFT
-			                      // FARM.post_json("/_fft", {id: docid}, (c_ret) => {
-			                      // 	console.log("rms returned");
-			                      // });
                         });
 
                     }, function(p, cur_uploading) {
@@ -985,7 +981,15 @@ function render_is_ready(root) {
     return get_data(T.cur_doc);
 }
 
-function render_hamburger(root) {
+function delete_action(doc) {
+    FARM.post_json("/_rec/_remove", {id: doc.id}, (ret) => {
+	      delete T.docs[ret.remove];
+	      render();
+    });
+}
+
+
+function render_hamburger(root, doc) {
     let ham = root.div({id: 'hamburger',
 			                  styles: {
 			                      top: T.SHOW_HAMBURGER.$el.parentElement.parentElement.offsetTop
@@ -1000,6 +1004,7 @@ function render_hamburger(root) {
 	          events: {
 		            onclick: (ev) => {
 		                console.log("click", name);
+                    window[name + '_action'](doc);
 		            }
 	          }
 	      });
@@ -1015,7 +1020,7 @@ function render() {
     render_doclist(root);
 
     if(T.SHOW_HAMBURGER) {
-	      render_hamburger(root);
+	      render_hamburger(root, T.SHOW_HAMBURGER.doc);
     }
 
     root.show();
