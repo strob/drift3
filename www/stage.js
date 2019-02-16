@@ -243,27 +243,6 @@ function render_doclist(root) {
     get_docs()
         .forEach((doc) => {
 
-	          // 	if(!doc.pitch) {
-            //         new PAL.Element("div", {
-	          // 		id: doc.id + "-pload",
-	          // 		parent: docel,
-	          // 		text: "Computing pitch...",
-	          // 		events: {
-            //                 onclick: (ev) => {
-	          // 			ev.preventDefault();
-	          // 			ev.stopPropagation();
-
-	          // 			FARM.post_json("/_pitch", {id: doc.id}, (ret) => {
-            //                         console.log("pitch returned");
-
-	          // 			});
-
-            //                 }
-	          // 		}
-            //         });
-	          // 	}
-	          // }
-
 	          // doc ready!!
 
 	          let is_active = T.active[doc.id];
@@ -378,7 +357,6 @@ function render_stats(root, doc) {
         const cell_w = 100;
 
         // Header
-
         keys
             .forEach((key,idx) => {
                 statbar.div({
@@ -408,6 +386,31 @@ function render_stats(root, doc) {
                     text: Math.round(stats[key] * 100) / 100
                 });
             });
+
+        root.button({id: doc.id + '-scopy',
+                        text: 'Copy',
+                        events: {
+                            onclick: (ev) => {
+                                let cliptxt = '';
+                                keys.forEach((key) =>{
+                                    cliptxt += key + '\t';
+                                });
+                                cliptxt += '\n';
+                                keys.forEach((key) =>{
+                                    cliptxt += stats[key] + '\t';
+                                });
+                                cliptxt += '\n'
+
+                                // Create, select, copy, and remove a textarea.
+                                let $el = document.createElement('textarea');
+                                $el.textContent = cliptxt;
+                                document.body.appendChild($el);
+                                $el.select();
+                                document.execCommand("copy");
+                                document.body.removeChild($el);
+                            }
+                        }
+                       });
     }
 
 }
