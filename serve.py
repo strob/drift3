@@ -471,6 +471,12 @@ root.putChild(b"_mat", guts.PostJson(gen_mat, runasync=True))
 
 
 def _measure(id=None, start_time=None, end_time=None, raw=False):
+
+    if start_time is not None:
+        start_time = float(start_time)
+    if end_time is not None:
+        end_time = float(end_time)
+
     meta = rec_set.get_meta(id)
     align = json.load(open(os.path.join("local", "_attachments", meta["align"])))
     pitch = [
@@ -480,6 +486,7 @@ def _measure(id=None, start_time=None, end_time=None, raw=False):
 
     m = measure.Measure([X[1] for X in pitch], align)
 
+    print("stats = m._raw_compute(", start_time, end_time)
     stats = m._raw_compute(start_time, end_time)
     out = {"measure": m._compute_measure(stats)}
     if raw:

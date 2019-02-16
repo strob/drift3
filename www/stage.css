@@ -41,7 +41,7 @@ body {
     cursor: pointer;
 }
 .driftitem.active {
-    height: 385px;
+    height: 425px;
 }
 .driftitem.pending {
     height: 155px;

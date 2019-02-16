@@ -25,7 +25,7 @@ class Measure:
         for seg in self.alignment["segments"]:
             if end_time is not None and seg["start"] > end_time:
                 break
-            if start_time is not None and seg["end_time"] < start_time:
+            if start_time is not None and seg["end"] < start_time:
                 continue
 
             seg_st = seg["start"]

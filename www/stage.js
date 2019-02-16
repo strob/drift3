@@ -340,16 +340,27 @@ function render_doclist(root) {
 
 		            render_detail(det_div, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
 
+                render_stats(docitem, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
+
 	          }
 
 
 	      })
 }
+function render_stats(root, doc, start, end) {
+    let url = '/_measure?id=' + doc.id;
+    if(start) {
+        url += '&start_time=' + start;
+    }
+    if(end) {
+        url += '&end_time=' + end;
+    }
 
-function render_stats(root, doc) {
-    let stats = cached_get_url('/_measure?id=' + doc.id, JSON.parse).measure;
+    let stats = cached_get_url(url, JSON.parse).measure;
     if(stats) {
-        let statbar = root.div({id: 'sb-'+ doc.id, classes: ['sbar']});
+        let uid = doc.id + '-' + start + '-' + end;
+
+        let statbar = root.div({id: 'sb-'+ uid, classes: ['sbar']});
 
         let keys = Object.keys(stats)
             .sort();
@@ -360,7 +371,7 @@ function render_stats(root, doc) {
         keys
             .forEach((key,idx) => {
                 statbar.div({
-                    id: 'sb-h-' + doc.id + '-' + key,
+                    id: 'sb-h-' + uid + '-' + key,
                     classes: ['sb', 'cell', 'header'],
                     styles: {
                         left: cell_w*idx,
@@ -376,7 +387,7 @@ function render_stats(root, doc) {
         keys
             .forEach((key,idx) => {
                 statbar.div({
-                    id: 'sb-' + doc.id + '-' + key,
+                    id: 'sb-' + uid + '-' + key,
                     classes: ['sb', 'cell'],
                     styles: {
                         left: cell_w*idx,
@@ -387,7 +398,7 @@ function render_stats(root, doc) {
                 });
             });
 
-        root.button({id: doc.id + '-scopy',
+        root.button({id: uid + '-scopy',
                         text: 'Copy',
                         events: {
                             onclick: (ev) => {
