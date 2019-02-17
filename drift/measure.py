@@ -176,6 +176,9 @@ class Measure:
 
     def _compute_measure(self, stats):
         out = {}
+        if stats.get("number_of_pauses") is None:
+            return out
+
         if stats["number_of_pauses"]:
             out["mean_pause_duration"] = (
                 stats["pause_duration"] / stats["number_of_pauses"]

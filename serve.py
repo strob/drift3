@@ -454,6 +454,11 @@ def gen_mat(cmd):
     if meta.get("align"):
         a_path = os.path.join(get_attachpath(), meta["align"])
         out["align"] = json.load(open(a_path))
+        # Remove 'None' values
+        for seg in out['align']['segments']:
+            for k,v in list(seg.items()):
+                if v is None:
+                    del seg[k]
 
     with tempfile.NamedTemporaryFile(suffix=".mat", delete=False) as mf:
         sio.savemat(mf.name, out)
