@@ -326,7 +326,7 @@ a {
 }
 .overview {
     border-bottom: 1px solid black;
-    cursor
+    margin-bottom: 20px;
 }
 .stats:hover .copybutton {
     visibility: visible;

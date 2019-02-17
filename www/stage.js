@@ -355,6 +355,7 @@ function render_doclist(root) {
 		            render_detail(det_div, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
 
                 if(!T.DRAGGING) {
+                    docitem.i({id: doc.id + '-expl', text: 'selected region:'})
                     render_stats(docitem, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
                 }
 
@@ -986,18 +987,25 @@ function render_overview(root, doc) {
     }
 
     // ...and x-axis
-    for(let x=0; x<duration; x+=1) {
-        var x_px = width * (x/duration);
+    let last_x = 0;
 
+    for(let x=0; x<duration; x+=1) {
+        let show_secs = false;
+
+        var x_px = width * (x/duration);
+        if(x % 5 == 0 && x - last_x > 10) {
+            last_x = x;
+            show_secs = true;
+        }
 	      svg.line({id: doc.id + '-ov-' + '-xaxis-' + x,
 		              attrs: {
 		                  x1: x_px,
-		                  y1: height-5,
+		                  y1: height,
 		                  x2: x_px,
-		                  y2: height,
+		                  y2: height - (show_secs ? 10 : 5),
 		                  stroke: '#C4D5D9'
 		              }})
-        if(x % 5 == 0) {
+        if(show_secs) {
 	          svg.text({id: doc.id + '-ov-' + '-xaxistxt-' + x,
 		                  text: '' + x + 's',
 		                  attrs: {
