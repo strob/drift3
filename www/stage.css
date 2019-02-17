@@ -302,7 +302,7 @@ a {
 .playbutton {
     position: relative;
     left: 40px;
-    top: 40px;
+    top: -10px;
 
     font-size: 16pt;
     background-color: white;

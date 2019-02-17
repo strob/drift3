@@ -93,9 +93,9 @@ class Measure:
                 p2_val = ch[idx + 1]
                 dv_chunk.append(abs(p1_val - p2_val))
 
-        out["pitch_log_deltas"] = functools.reduce(lambda acc, x: acc + x, dt_chunks)
+        out["pitch_log_deltas"] = functools.reduce(lambda acc, x: acc + x, dt_chunks, [])
         out["pitch_velocity_deltas"] = functools.reduce(
-            lambda acc, x: acc + x, dv_chunks
+            lambda acc, x: acc + x, dv_chunks, []
         )
 
         if len(wdlist) == 0:
@@ -167,10 +167,11 @@ class Measure:
     def _accumulate_stats(self, stat_list):
         # Does everything just sum?
         out = {}
-        for key in stat_list[0].keys():
-            out[key] = functools.reduce(
-                lambda acc, x: acc + x, [S[key] for S in stat_list]
-            )
+        if len(stat_list) > 0:
+            for key in stat_list[0].keys():
+                out[key] = functools.reduce(
+                    lambda acc, x: acc + x, [S[key] for S in stat_list],
+                )
         return out
 
     def _compute_measure(self, stats):

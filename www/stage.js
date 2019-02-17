@@ -324,21 +324,24 @@ function render_doclist(root) {
 
                 render_stats(docitem, doc);
 
+                if(true) {//T.cur_doc == doc.id) {
+                // a play button!
+                docitem.button({id: doc.id + '-' + 'play',
+                                classes: ['playbutton'],
+                                events: {
+                                    onclick: () => {
+                                        T.cur_doc = doc.id;
+                                        toggle_playpause();
+                                    }
+                                },
+                                text: (T.audio && T.audio.paused) ? 'play' : 'pause'})
+                }
+
 		            let ov_div = docitem.div({
 		                id: doc.id + '-ovdiv',
 		                classes: ['overview']
 		            });
 		            render_overview(ov_div, doc);
-
-                if(T.cur_doc == doc.id) {
-                // a play button!
-                docitem.button({id: doc.id + '-' + 'play',
-                                classes: ['playbutton'],
-                                events: {
-                                    onclick: toggle_playpause
-                                },
-                                text: (T.audio && T.audio.paused) ? 'play' : 'pause'})
-                }
 
 		            let det_div = docitem.div({
 		                id: doc.id + '-detdiv',
@@ -982,6 +985,30 @@ function render_overview(root, doc) {
 		             });
     }
 
+    // ...and x-axis
+    for(let x=0; x<duration; x+=1) {
+        var x_px = width * (x/duration);
+
+	      svg.line({id: doc.id + '-ov-' + '-xaxis-' + x,
+		              attrs: {
+		                  x1: x_px,
+		                  y1: height-5,
+		                  x2: x_px,
+		                  y2: height,
+		                  stroke: '#C4D5D9'
+		              }})
+        if(x % 5 == 0) {
+	          svg.text({id: doc.id + '-ov-' + '-xaxistxt-' + x,
+		                  text: '' + x + 's',
+		                  attrs: {
+		                      x: x_px + 2,
+		                      y: height - 2,
+		                      class: 'axis',
+		                      fill: '#3B5161'
+		                  }})
+        }
+    }
+
 }
 
 function render_is_ready(root) {
@@ -1097,6 +1124,7 @@ function toggle_playpause() {
 	      else {
 		        T.audio.pause();
 	      }
+        render();
 	  }
 }
 window.onkeydown = (ev) => {
