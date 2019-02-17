@@ -42,7 +42,7 @@ body {
 }
 .driftitem.active {
     background-color: white;
-    height: 465px;
+    height: 520px;
 }
 .name {
     transition-property: font-size;
