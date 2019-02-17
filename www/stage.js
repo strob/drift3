@@ -699,14 +699,16 @@ function render_detail(root, doc, start_time, end_time) {
 		                  y2: y_px,
 		                  stroke: '#C4D5D9'
 		              }})
-	      svg.text({id: doc.id + '-seg-' + '-axistxt-' + yval,
-		              text: '' + yval + 'Hz',
-		              attrs: {
-		                  x: 0,
-		                  y: y_px,
-		                  class: 'axis',
-		                  fill: '#3B5161'
-		              }})
+        if(!(yval in {150: true, 250: true, 300: true, 350: true})) {
+	          svg.text({id: doc.id + '-seg-' + '-axistxt-' + yval,
+		                  text: '' + yval + 'Hz',
+		                  attrs: {
+		                      x: 0,
+		                      y: y_px,
+		                      class: 'axis',
+		                      fill: '#3B5161'
+		                  }})
+        }
     });
 
     // ...and x-axis
