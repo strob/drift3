@@ -404,7 +404,7 @@ function render_stats(root, doc, start, end) {
                         top: 20,
                         width: cell_w
                     },
-                    text: Math.round(stats[key] * 100) / 100
+                    text: '' + Math.round(stats[key] * 100) / 100
                 });
             });
 

@@ -3,7 +3,7 @@
 }
 body {
     font-family: Arial, sans;
-    background-color: #ECEFF1;
+    background-color: #ddd;
     margin: 0;
     padding: 0;
 }
@@ -27,20 +27,21 @@ body {
 
 .driftitem {
     padding: 3px;
-    background-color: white;
+    background-color: #eee;
     margin: 2px 0;
     position: relative;
     height: 25px;
 
     position: relative;
 
-    transition-property: height;
+    transition-property: height, background-color;
     transition-duration: 0.2s;
 }
 .docbar {
     cursor: pointer;
 }
 .driftitem.active {
+    background-color: white;
     height: 465px;
 }
 .name {
@@ -63,6 +64,8 @@ body {
 .detail {
     overflow-x: auto;
     width: 100%;
+    border-top: 1px solid #ccc;
+    padding-top: 15px;
 }
 
 .hamburger {
@@ -299,5 +302,17 @@ a {
 .playbutton {
     position: relative;
     left: 40px;
-    top: 20px;
+    top: 40px;
+
+    font-size: 16pt;
+    background-color: white;
+    color: black;
+    border: 1px solid black;
+    border-radius: 3px;
+}
+.playbutton:hover {
+    background-color: yellow;
+}
+.overview {
+    border-bottom: 1px solid black;
 }
