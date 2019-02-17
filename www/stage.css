@@ -65,7 +65,7 @@ body {
     overflow-x: auto;
     width: 100%;
     border-top: 1px solid #ccc;
-    padding-top: 15px;
+    padding-top: 0;
 }
 
 .hamburger {
@@ -296,7 +296,7 @@ a {
 }
 .sbar {
     position: relative;
-    height: 50px;
+    height: 40px;
     width: 100%;
 }
 .playbutton {
@@ -313,6 +313,21 @@ a {
 .playbutton:hover {
     background-color: yellow;
 }
+
+.copybutton {
+    visibility: hidden;
+    background-color: white;
+    border: 0;
+    font-style: italic;
+    color: #aaa;
+    margin-top: 0;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
 .overview {
     border-bottom: 1px solid black;
+    cursor
+}
+.stats:hover .copybutton {
+    visibility: visible;
 }

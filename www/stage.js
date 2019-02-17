@@ -307,11 +307,8 @@ function render_doclist(root) {
 				                        render();
 
 				                        window.onclick = (ev) => {
-				                            // ev.preventDefault();
-				                            // ev.stopPropagation();
 				                            T.SHOW_HAMBURGER = null;
 				                            render();
-
 				                            window.onclick = null;
 				                        }
 
@@ -327,7 +324,11 @@ function render_doclist(root) {
 
                 render_stats(docitem, doc);
 
-		            render_overview(docitem, doc);
+		            let ov_div = docitem.div({
+		                id: doc.id + '-ovdiv',
+		                classes: ['overview']
+		            });
+		            render_overview(ov_div, doc);
 
                 if(T.cur_doc == doc.id) {
                 // a play button!
@@ -350,14 +351,18 @@ function render_doclist(root) {
 
 		            render_detail(det_div, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
 
-                render_stats(docitem, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
+                if(!T.DRAGGING) {
+                    render_stats(docitem, doc, T.selections[doc.id].start_time, T.selections[doc.id].end_time);
+                }
 
 	          }
 
 
 	      })
 }
-function render_stats(root, doc, start, end) {
+function render_stats(root_, doc, start, end) {
+    let root = root_.div({id: 'mwrap-' + start + '-' + doc.id, classes: ['stats']});
+
     let url = '/_measure?id=' + doc.id;
     if(start) {
         url += '&start_time=' + start;
@@ -408,8 +413,10 @@ function render_stats(root, doc, start, end) {
                 });
             });
 
-        root.button({id: uid + '-scopy',
-                        text: 'copy',
+        let cspan = root.div({id: uid + '-cspan', styles: {textAlign: 'center'}});
+        cspan.button({id: uid + '-scopy',
+                     classes: ['copybutton'],
+                        text: 'copy data',
                         events: {
                             onclick: (ev) => {
                                 let cliptxt = '';
@@ -857,6 +864,8 @@ function render_overview(root, doc) {
 		            let t1 = (ev.clientX / width) * duration;
 		            let t2 = t1;
 
+                T.DRAGGING = true;
+
 		            window.onmousemove = (ev) => {
 		                t2 = (ev.clientX / width) * duration;
 
@@ -884,6 +893,8 @@ function render_overview(root, doc) {
 
 		            }
 		            window.onmouseup = (ev) => {
+                    T.DRAGGING = false;
+
 		                set_active_doc(doc);
 
 		                if(Math.abs(t2 - t1) < 0.2) {
@@ -891,8 +902,8 @@ function render_overview(root, doc) {
 			                  T.razors[doc.id] = t2;
 			                  T.audio.currentTime = t2;
 
-			                  render();
 		                }
+			              render();
 
 		                window.onmousemove = null;
 		                window.onmouseup = null;
