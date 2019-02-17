@@ -329,6 +329,15 @@ function render_doclist(root) {
 
 		            render_overview(docitem, doc);
 
+                // a play button!
+                docitem.button({id: doc.id + '-' + 'play',
+                                classes: ['playbutton'],
+                                events: {
+                                    onclick: toggle_playpause
+                                },
+                                text: (T.audio && T.audio.paused) ? 'play' : 'pause'})
+
+
 		            let det_div = docitem.div({
 		                id: doc.id + '-detdiv',
 		                classes: ['detail']
@@ -399,7 +408,7 @@ function render_stats(root, doc, start, end) {
             });
 
         root.button({id: uid + '-scopy',
-                        text: 'Copy',
+                        text: 'copy',
                         events: {
                             onclick: (ev) => {
                                 let cliptxt = '';
@@ -1066,19 +1075,21 @@ function pitch2y(p, p_h) {
     // n = 12 log2(f/440hz) + 49
     return (-60 * Math.log2(p / 440));
 }
-
+function toggle_playpause() {
+	  if(T.audio) {
+	      if(T.audio.paused) {
+		        T.audio.play();
+	      }
+	      else {
+		        T.audio.pause();
+	      }
+	  }
+}
 window.onkeydown = (ev) => {
     // XXX: Make sure we're not editing a transcript.
     if(ev.key == ' ') {
-	      if(T.audio) {
-	          ev.preventDefault();
-	          if(T.audio.paused) {
-		            T.audio.play();
-	          }
-	          else {
-		            T.audio.pause();
-	          }
-	      }
+	      ev.preventDefault();
+        toggle_playpause();
     }
 }
 

@@ -41,13 +41,20 @@ body {
     cursor: pointer;
 }
 .driftitem.active {
-    height: 425px;
+    height: 465px;
+}
+.name {
+    transition-property: font-size;
+    transition-duration: 0.3s;
+}
+.driftitem.active .name {
+    font-size: 18pt;
 }
 .driftitem.pending {
     height: 155px;
 }
 .expand {
-    font-family: mono, monospace;
+    /* font-family: mono, monospace; */
 }
 .docbar:hover {
     color: blue;
