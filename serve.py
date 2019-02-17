@@ -10,6 +10,7 @@ import json
 import nmt
 import numpy as np
 import scipy.io as sio
+import sys
 
 from drift import measure
 
@@ -43,12 +44,8 @@ root = guts.Root(port=port, interface="127.0.0.1", dirpath="www")
 
 db = guts.Babysteps(os.path.join(get_local(), "db"))
 
-rec_set = guts.BSFamily("recording")
+rec_set = guts.BSFamily("recording", localbase=get_local())
 root.putChild(b"_rec", rec_set.res)
-
-tran_set = guts.BSFamily("transcript")
-root.putChild(b"_trans", tran_set.res)
-
 
 def pitch(cmd):
     docid = cmd["id"]
@@ -421,8 +418,9 @@ def rms(cmd):
 
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as fh:
         json.dump(rms.tolist(), fh)
+        fh.close()
 
-        rmshash = guts.attach(fh.name, get_attachpath())
+    rmshash = guts.attach(fh.name, get_attachpath())
 
     guts.bschange(
         rec_set.dbs[docid], {"type": "set", "id": "meta", "key": "rms", "val": rmshash}
