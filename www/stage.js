@@ -1137,6 +1137,9 @@ function toggle_playpause() {
 }
 window.onkeydown = (ev) => {
     // XXX: Make sure we're not editing a transcript.
+    if(ev.target.tagName == 'TEXTAREA') {
+        return;
+    }
     if(ev.key == ' ') {
 	      ev.preventDefault();
         toggle_playpause();

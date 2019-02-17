@@ -24,7 +24,7 @@ def get_open_port(desired=0):
     s.close()
     return port
 
-PORT = get_open_port(9898)
+PORT = get_open_port(9899)
 
 def get_binary(name):
     if hasattr(sys, "frozen"):
@@ -41,9 +41,10 @@ def get_cwd():
 S_PROC = None
 G_PROC = None
 
+devnull = None#open(os.devnull, 'w')
+
 def serve(port):
     global S_PROC
-    devnull = open(os.devnull, 'w')
     S_PROC = subprocess.Popen(['./serve', str(port)],
                               cwd=os.path.join(get_cwd(), 'serve-dist'),
                               stdout=devnull,
@@ -54,21 +55,7 @@ gentle_running = get_open_port(8765) != 8765
 # Start a thread for the web server.
 webthread = threading.Thread(target=serve, args=(PORT,))
 webthread.start()
-
-def gentle_serve(port):
-    global G_PROC
-    devnull = open(os.devnull, 'w')
-    G_PROC = subprocess.Popen(['./gentle_serve', str(port)],
-                              cwd=os.path.join(get_cwd(), 'serve-dist'),
-                              stdout=devnull,
-                              stderr=devnull)
-
-if not gentle_running:
-    # ...and another for gentle (!)
-    gentlethread = threading.Thread(target=gentle_serve, args=(PORT,))
-    gentlethread.start()
-
-
+print("Starting server...")
 
 def open_browser():
     webbrowser.open("http://localhost:%d/" % (PORT))
@@ -96,10 +83,20 @@ txt = QtWidgets.QLabel('''Drift v%s
 Words and intonation.''' % (__version__))
 layout.addWidget(txt)
 
-btn = QtWidgets.QPushButton('Open in browser')
-btn.setStyleSheet("font-weight: bold;")
-layout.addWidget(btn)
-btn.clicked.connect(open_browser)
+if not gentle_running:
+    gtxt = QtWidgets.QLabel('''Gentle is not running.
+Please install and run Gentle before running Drift.''')
+    layout.addWidget(gtxt)
+
+    gbtn = QtWidgets.QPushButton('Download Gentle')
+    gbtn.setStyleSheet("font-weight: bold;")
+    layout.addWidget(gbtn)
+    gbtn.clicked.connect(open_gentle)
+else:
+    btn = QtWidgets.QPushButton('Open in browser')
+    btn.setStyleSheet("font-weight: bold;")
+    layout.addWidget(btn)
+    btn.clicked.connect(open_browser)
 
 abt = QtWidgets.QPushButton('About Drift')
 layout.addWidget(abt)
@@ -119,6 +116,3 @@ app.exec_()
 logging.info("Waiting for server to quit.")
 S_PROC.kill()
 S_PROC.wait()
-if not gentle_running:
-    G_PROC.kill()
-    G_PROC.wait()

@@ -13,7 +13,7 @@ import scipy.io as sio
 
 from drift import measure
 
-BUNDLE = False
+BUNDLE = True
 
 
 def get_ffmpeg():
@@ -38,9 +38,10 @@ def get_calc_sbpca():
     return "./ext/calc_sbpca/python/SAcC.py"
 
 
-root = guts.Root(port=9899, interface="127.0.0.1", dirpath="www")
+port = int(sys.argv[1]) if len(sys.argv) > 2 else 9899
+root = guts.Root(port=port, interface="127.0.0.1", dirpath="www")
 
-db = guts.Babysteps("local/db")
+db = guts.Babysteps(os.path.join(get_local(), "db"))
 
 rec_set = guts.BSFamily("recording")
 root.putChild(b"_rec", rec_set.res)
@@ -401,7 +402,7 @@ def rms(cmd):
     docid = cmd["id"]
     info = rec_set.get_meta(docid)
 
-    vpath = os.path.join("local", "_attachments", info["path"])
+    vpath = os.path.join(get_attachpath(), info["path"])
 
     R = 44100
 
@@ -483,10 +484,10 @@ def _measure(id=None, start_time=None, end_time=None, raw=False):
         end_time = float(end_time)
 
     meta = rec_set.get_meta(id)
-    align = json.load(open(os.path.join("local", "_attachments", meta["align"])))
+    align = json.load(open(os.path.join(get_attachpath(), meta["align"])))
     pitch = [
         [float(Y) for Y in X.split(" ")]
-        for X in open(os.path.join("local", "_attachments", meta["pitch"]))
+        for X in open(os.path.join(get_attachpath(), meta["pitch"]))
     ]
 
     m = measure.Measure([X[1] for X in pitch], align)
@@ -504,9 +505,9 @@ root.putChild(b"_measure", guts.GetArgs(_measure, runasync=True))
 root.putChild(b"_rms", guts.PostJson(rms, runasync=True))
 
 root.putChild(b"_db", db)
-root.putChild(b"_attach", guts.Attachments())
+root.putChild(b"_attach", guts.Attachments(get_attachpath()))
 root.putChild(b"_stage", guts.Codestage(wwwdir="www"))
 
-root.putChild(b"media", File("local/_attachments"))
+root.putChild(b"media", File(get_attachpath()))
 
 guts.serve("stage.py", globals(), root=root)
