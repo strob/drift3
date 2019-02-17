@@ -28,4 +28,4 @@ pyinstaller --windowed -y drift_gui.spec
 mv serve-dist dist/drift_gui.app/Contents/Resources/
 
 
-#hdiutil create dist/drift3.dmg -volname "Drift3" -srcfolder dist/drift_gui.app/
+hdiutil create dist/drift3.dmg -volname "Drift3" -srcfolder dist/drift_gui.app/

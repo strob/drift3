@@ -36,7 +36,7 @@ coll = COLLECT(exe,
                name='drift_gui')
 app = BUNDLE(coll,
              name='drift_gui.app',
-             icon=None,
+             icon='drift3.icns',
              bundle_identifier=None,
              info_plist={
                  'NSHighResolutionCapable': 'True'
