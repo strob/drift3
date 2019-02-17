@@ -291,6 +291,18 @@ function render_doclist(root) {
                 })
 	          }
 
+	          if(doc.align_px && !doc.align) {
+                // Show progress
+                new PAL.Element("progress", {
+	          		    id: doc.id + '-align-progress',
+	          		    parent: docbar,
+	          		    attrs: {
+                        max: "100",
+                        value: "" + Math.floor((100*doc.align_px))
+	          		    },
+                })
+            }
+
 	          // Hamburger
 	          docbar.div({id: doc.id + '-hamburger',
 			                  text: ":",

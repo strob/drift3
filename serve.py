@@ -5,12 +5,14 @@ from twisted.web.static import File
 import os
 import csv
 import tempfile
+import requests
 import subprocess
 import json
 import nmt
 import numpy as np
 import scipy.io as sio
 import sys
+import time
 
 from drift import measure
 
@@ -231,35 +233,41 @@ def align(cmd):
         open(os.path.join(get_attachpath(), meta["transcript"])).read()
     )
 
-    with tempfile.NamedTemporaryFile(suffix=".txt", mode="w") as txtfp:
-        txtfp.write("\n".join([X["line"] for X in segs]))
-        txtfp.flush()
+    tscript_txt = "\n".join([X["line"] for X in segs])
+    url = "http://localhost:8765/transcriptions"
 
-        print("tscript - ", txtfp.name)
-        # txtfp.close()
+    res = requests.post(url,
+                        data={"transcript": tscript_txt},
+                        files={'audio':
+                               ('audio', open(media, 'rb'))})
 
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as fp:
-            # XXX: Check if Gentle is running
+    # Find the ID
+    uid = res.history[0].headers['Location'].split('/')[-1]
 
-            url = "http://localhost:8765/transcriptions?async=false"
+    # Poll for status
+    status_url = url + '/' + uid + '/status.json'
 
-            t_opts = []
-            t_opts = ["-F", "transcript=<%s" % (txtfp.name)]
-            # Adding disfluencies may be unreliable...
-            # url += '&disfluency=true'
+    cur_status = 0
 
-            # XXX: can I count on `curl` on os x? I think so?
-            gentle_cmd = (
-                ["curl", "-o", fp.name, "-X", "POST", "-F", "audio=@%s" % (media)]
-                + t_opts
-                + [url]
-            )
+    while True:
+        status = requests.get(status_url).json()
+        if status.get('status') != 'OK':
+            s = status.get('percent', 0)
+            if s > cur_status:
+                cur_status = s
 
-            print(gentle_cmd)
+                guts.bschange(
+                    rec_set.dbs[cmd["id"]],
+                    {"type": "set", "id": "meta", "key": "align_px", "val": cur_status})
 
-            subprocess.check_call(gentle_cmd)
+            time.sleep(1)
 
-            trans = json.load(open(fp.name))
+        else:
+            # transcription done
+            break
+
+    align_url = url + '/' + uid + '/align.json'
+    trans = requests.get(align_url).json()
 
     # Re-diarize Gentle output into a sane diarization format
     diary = {"segments": [{}]}
