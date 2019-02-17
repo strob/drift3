@@ -296,3 +296,8 @@ a {
     height: 50px;
     width: 100%;
 }
+.playbutton {
+    position: relative;
+    left: 40px;
+    top: 20px;
+}

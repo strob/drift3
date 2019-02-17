@@ -329,6 +329,7 @@ function render_doclist(root) {
 
 		            render_overview(docitem, doc);
 
+                if(T.cur_doc == doc.id) {
                 // a play button!
                 docitem.button({id: doc.id + '-' + 'play',
                                 classes: ['playbutton'],
@@ -336,7 +337,7 @@ function render_doclist(root) {
                                     onclick: toggle_playpause
                                 },
                                 text: (T.audio && T.audio.paused) ? 'play' : 'pause'})
-
+                }
 
 		            let det_div = docitem.div({
 		                id: doc.id + '-detdiv',
