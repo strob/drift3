@@ -312,7 +312,8 @@ def align(cmd):
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as dfh:
         json.dump(diary, dfh, indent=2)
 
-        alignhash = guts.attach(dfh.name, get_attachpath())
+        dfh.close()
+    alignhash = guts.attach(dfh.name, get_attachpath())
 
     guts.bschange(
         rec_set.dbs[cmd["id"]],
