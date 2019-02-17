@@ -55,10 +55,9 @@ gentle_running = get_open_port(8765) != 8765
 # Start a thread for the web server.
 webthread = threading.Thread(target=serve, args=(PORT,))
 webthread.start()
-print("Starting server...")
 
 def open_browser():
-    webbrowser.open("http://localhost:%d/" % (PORT))
+    webbrowser.open("http://localhost:%d/" % (9899))
 
 def open_about():
     webbrowser.open("https://rmozone.com/drift")

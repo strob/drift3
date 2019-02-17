@@ -22,6 +22,8 @@ def get_ffmpeg():
         return "./ffmpeg"
     return "ffmpeg"
 
+if BUNDLE:
+    nmt.FFMPEG = get_ffmpeg()
 
 def get_local():
     if BUNDLE:
