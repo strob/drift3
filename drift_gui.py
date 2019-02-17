@@ -10,7 +10,7 @@ import threading
 import webbrowser
 import sys
 
-__version__="3.0"
+__version__="3.1"
 
 def get_open_port(desired=0):
     import socket
