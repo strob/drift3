@@ -24,7 +24,7 @@ cp stage.py ffmpeg serve-dist/
 cp -r ext/calc_sbpca/python/aux ext/calc_sbpca/python/*.config serve-dist/
 
 
-pyinstaller --windowed -y drift_gui.spec
+pyinstaller -i drift3.icns --windowed -y drift_gui.spec
 mv serve-dist dist/drift_gui.app/Contents/Resources/
 
 

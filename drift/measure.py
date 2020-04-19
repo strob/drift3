@@ -2,17 +2,16 @@
 
 from lempel_ziv_complexity import lempel_ziv_complexity
 import numpy as np
+import scipy.signal
 import functools
 
 
-def smooth(y, N=10):
+def smooth(y, N=7, polyorder=2):
     if len(y) < N:
         return y
 
     arr = np.array(y)
-    win = np.hanning(N)
-
-    return np.convolve(arr, win, mode="same").tolist()
+    return scipy.signal.savgol_filter(arr, N, polyorder)
 
 
 class Measure:
@@ -93,7 +92,9 @@ class Measure:
                 p2_val = ch[idx + 1]
                 dv_chunk.append(abs(p1_val - p2_val))
 
-        out["pitch_log_deltas"] = functools.reduce(lambda acc, x: acc + x, dt_chunks, [])
+        out["pitch_log_deltas"] = functools.reduce(
+            lambda acc, x: acc + x, dt_chunks, []
+        )
         out["pitch_velocity_deltas"] = functools.reduce(
             lambda acc, x: acc + x, dv_chunks, []
         )
@@ -170,7 +171,7 @@ class Measure:
         if len(stat_list) > 0:
             for key in stat_list[0].keys():
                 out[key] = functools.reduce(
-                    lambda acc, x: acc + x, [S[key] for S in stat_list],
+                    lambda acc, x: acc + x, [S[key] for S in stat_list]
                 )
         return out
 

@@ -215,12 +215,12 @@ function got_files(files) {
 
                             // Immediately trigger a pitch trace
                             FARM.post_json("/_pitch", {id: ret.id}, (p_ret) => {
-                                console.log("pitch returned");
+                                console.log("pitch returned", p_ret);
                             });
 
 			                      // ...and RMS
 			                      FARM.post_json("/_rms", {id: ret.id}, (c_ret) => {
-				                        console.log("rms returned");
+				                        console.log("rms returned", c_ret);
 			                      });
 
                         });

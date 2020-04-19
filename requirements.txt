@@ -1,7 +1,9 @@
 numpy
+scipy
 scikits.audiolab
 Twisted
 autobahn[twisted,accelerate]
 watchdog
 sklearn
 Pillow
+Lempel-Ziv_Complexity
