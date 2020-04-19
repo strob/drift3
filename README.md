@@ -22,7 +22,17 @@ Q1: Blah...
 
 TODO(rmo): Documentation on speaker diarization input
 
+# Getting windowed output
 
+Open the Javascript Console.
+Expand _exactly_ one item in the UI.
+
+Copy the code from "windowed.js" into the console.
+
+Run `get_windowed(window_duration, step_duration)`, adjusting
+window_duration and step_duration (both in seconds) as necessary.
+
+Use the "output" variable to dump data however you'd like.
 
 # LZ Complexity
 
